@@ -1,4 +1,5 @@
-import React from 'react';
+import React from "react";
+import { Link } from "react-router-dom";
 
 const Header = () => {
     return (
@@ -7,9 +8,12 @@ const Header = () => {
                 <div className="max-w-md">
                     <h1 className="text-5xl font-bold">Welcome to aSocial</h1>
                     <p className="py-6">
-                        A social media platform for introverts to write with each other.
+                        A social media platform for introverts to write with
+                        each other.
                     </p>
-                    <button className="btn btn-primary">Get Started</button>
+                    <Link to="/about">
+                        <button className="btn btn-primary">Get Started</button>
+                    </Link>
                 </div>
             </div>
         </div>
