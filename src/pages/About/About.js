@@ -1,9 +1,11 @@
-import React from 'react';
+import React from "react";
+import UserInfo from "../UserInfo/UserInfo";
 
 const About = () => {
     return (
-        <div>
-            about
+        <div className="text-center">
+            <h1 className="text-3xl mb-12">User Information</h1>
+            <UserInfo />
         </div>
     );
 };
