@@ -1,9 +1,25 @@
-import React from "react";
+import React, { useContext } from "react";
 import { Link } from "react-router-dom";
 import loginGif from "../../assets/gif/Login.gif";
 import { FcGoogle } from "react-icons/fc";
+import { GoogleAuthProvider } from "firebase/auth";
+import { AuthContext } from "../../contexts/AuthProvider";
 
 const Login = () => {
+    const { providerLogin } = useContext(AuthContext);
+    const googleProvider = new GoogleAuthProvider();
+
+    const handleGoogleLogin = () => {
+        providerLogin(googleProvider)
+            .then((credential) => {
+                const user = credential.user;
+                console.log(user);
+            })
+            .catch((error) => {
+                console.log(error.message);
+            });
+    };
+
     return (
         <div className="hero min-h-screen bg-base-200">
             <div className="hero-content flex-col-reverse lg:flex-row">
@@ -54,7 +70,10 @@ const Login = () => {
                         </div>
                     </form>
                     <div className="divider"></div>
-                    <button className="btn btn-block btn-outline gap-2">
+                    <button
+                        className="btn btn-block btn-outline gap-2"
+                        onClick={handleGoogleLogin}
+                    >
                         <FcGoogle size={25} />
                         <p>Login with Google</p>
                     </button>
