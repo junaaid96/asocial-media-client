@@ -14,6 +14,20 @@ const Login = () => {
             .then((credential) => {
                 const user = credential.user;
                 console.log(user);
+                const { displayName, email } = user;
+                const userData = {
+                    username: displayName,
+                    email,
+                    institute: "",
+                    address: "",
+                };
+                fetch("http://localhost:5000/users", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(userData),
+                });
             })
             .catch((error) => {
                 console.log(error.message);
@@ -35,7 +49,7 @@ const Login = () => {
                             <input
                                 type="email"
                                 placeholder="email"
-                                className="input input-bordered"
+                                className="input input-bordered input-primary"
                             />
                         </div>
                         <div className="form-control">
@@ -45,7 +59,7 @@ const Login = () => {
                             <input
                                 type="password"
                                 placeholder="password"
-                                className="input input-bordered"
+                                className="input input-bordered input-primary"
                             />
                             <label className="label">
                                 <Link

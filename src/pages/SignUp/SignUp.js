@@ -7,34 +7,47 @@ const SignUp = () => {
     const handleSignUp = (event) => {
         event.preventDefault();
         const form = event.target;
-        const { username, email, institute, address } = form;
+        const { username, email, institute, address, photoURL } = form;
+        const userImageHostingKey = process.env.REACT_APP_imgbb_api;
 
-        const userData = {
-            username: username.value,
-            email: email.value,
-            institute: institute.value,
-            address: address.value,
-        };
-        
-        //create a user
-        fetch("http://localhost:5000/signup", {
+        //upload user's photo
+        const formData = new FormData();
+        formData.append("image", photoURL.files[0]);
+        const url = `https://api.imgbb.com/1/upload?key=${userImageHostingKey}`;
+        fetch(url, {
             method: "POST",
-            headers: {
-                "content-type": "application/json",
-            },
-            body: JSON.stringify(userData),
-        }).then((res) => {
-            if (res.status === 400) {
-                res.json().then((data) => {
-                    toast.error(data.message); // "User already exists"
+            body: formData,
+        })
+            .then((res) => res.json())
+            .then((imageData) => {
+                const userData = {
+                    username: username.value,
+                    email: email.value,
+                    institute: institute.value,
+                    address: address.value,
+                    photo: imageData.data.url,
+                };
+
+                //create a user
+                fetch("http://localhost:5000/users", {
+                    method: "POST",
+                    headers: {
+                        "content-type": "application/json",
+                    },
+                    body: JSON.stringify(userData),
+                }).then((res) => {
+                    if (res.status === 400) {
+                        res.json().then((data) => {
+                            toast.error(data.message); // "User already exists"
+                        });
+                    } else if (res.status === 200) {
+                        res.json().then((data) => {
+                            form.reset();
+                            toast.success(data.message); // "User created successfully"
+                        });
+                    }
                 });
-            } else if (res.status === 200) {
-                res.json().then((data) => {
-                    form.reset();
-                    toast.success(data.message); // "User created successfully"
-                });
-            }
-        });
+            });
     };
 
     return (
@@ -53,7 +66,7 @@ const SignUp = () => {
                                 name="username"
                                 type="text"
                                 placeholder="username"
-                                className="input input-bordered"
+                                className="input input-bordered input-primary"
                                 required
                             />
                         </div>
@@ -65,7 +78,7 @@ const SignUp = () => {
                                 name="email"
                                 type="email"
                                 placeholder="email"
-                                className="input input-bordered"
+                                className="input input-bordered input-primary"
                                 required
                             />
                         </div>
@@ -77,7 +90,7 @@ const SignUp = () => {
                                 name="password"
                                 type="password"
                                 placeholder="password"
-                                className="input input-bordered"
+                                className="input input-bordered input-primary"
                                 required
                             />
                         </div>
@@ -89,7 +102,7 @@ const SignUp = () => {
                                 name="institute"
                                 type="text"
                                 placeholder="school/college/university"
-                                className="input input-bordered"
+                                className="input input-bordered input-primary"
                                 required
                             />
                         </div>
@@ -101,7 +114,18 @@ const SignUp = () => {
                                 name="address"
                                 type="text"
                                 placeholder="address"
-                                className="input input-bordered"
+                                className="input input-bordered input-primary"
+                                required
+                            />
+                        </div>
+                        <div className="form-control">
+                            <label className="label">
+                                <span className="label-text">Photo</span>
+                            </label>
+                            <input
+                                name="photoURL"
+                                type="file"
+                                className="file-input file-input-bordered file-input-primary w-full max-w-xs"
                                 required
                             />
                         </div>
