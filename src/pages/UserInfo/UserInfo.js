@@ -17,7 +17,7 @@ const UserInfo = () => {
             const res = await fetch(`https://ipapi.co/${ip}/json/`);
             const data = await res.json();
             setLocation(
-                `${data.city}, ${data.region}-${data.postal}, ${data.country_name}`
+                `${data.city}, ${data.region}-${data.postal}, ${data.country_name}, ISP: ${data.org}`
             );
             setLoading(false);
         }
