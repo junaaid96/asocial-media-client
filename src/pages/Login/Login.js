@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { Link } from "react-router-dom";
 import loginGif from "../../assets/gif/Login.gif";
 import { FcGoogle } from "react-icons/fc";
@@ -6,8 +6,26 @@ import { GoogleAuthProvider } from "firebase/auth";
 import { AuthContext } from "../../contexts/AuthProvider";
 
 const Login = () => {
-    const { providerLogin } = useContext(AuthContext);
+    const { providerLogin, existingUser } = useContext(AuthContext);
     const googleProvider = new GoogleAuthProvider();
+    const [error, setError] = useState("");
+
+    const handleLogin = (event) => {
+        event.preventDefault();
+        const form = event.target;
+        const email = form.email.value;
+        const password = form.password.value;
+        existingUser(email, password)
+            .then((userCredential) => {
+                const user = userCredential.user;
+                console.log(user);
+                setError("");
+            })
+            .catch((error) => {
+                console.log(error.message);
+                setError(error.message);
+            });
+    };
 
     const handleGoogleLogin = () => {
         providerLogin(googleProvider)
@@ -42,12 +60,13 @@ const Login = () => {
                     <img src={loginGif} alt="login" />
                 </div>
                 <div className="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
-                    <form className="card-body">
+                    <form className="card-body" onSubmit={handleLogin}>
                         <div className="form-control">
                             <label className="label">
                                 <span className="label-text">Email</span>
                             </label>
                             <input
+                                name="email"
                                 type="email"
                                 placeholder="email"
                                 className="input input-bordered input-primary"
@@ -58,6 +77,7 @@ const Login = () => {
                                 <span className="label-text">Password</span>
                             </label>
                             <input
+                                name="password"
                                 type="password"
                                 placeholder="password"
                                 className="input input-bordered input-primary"
@@ -80,8 +100,15 @@ const Login = () => {
                                 </Link>
                             </label>
                         </div>
+                        {error && (
+                            <p className="text-white bg-red-600 rounded-lg p-2">
+                                {error}
+                            </p>
+                        )}
                         <div className="form-control mt-6">
-                            <button className="btn btn-primary">Login</button>
+                            <button type="submit" className="btn btn-primary">
+                                Login
+                            </button>
                         </div>
                     </form>
                     <div className="divider"></div>
