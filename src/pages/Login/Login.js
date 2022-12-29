@@ -14,12 +14,13 @@ const Login = () => {
             .then((credential) => {
                 const user = credential.user;
                 console.log(user);
-                const { displayName, email } = user;
+                const { displayName, email, photoURL } = user;
                 const userData = {
                     username: displayName,
                     email,
                     institute: "",
                     address: "",
+                    photo: photoURL,
                 };
                 fetch("http://localhost:5000/users", {
                     method: "POST",

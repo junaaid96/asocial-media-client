@@ -1,8 +1,18 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../contexts/AuthProvider";
 
 const UserModal = ({ isOpen, closeModal }) => {
     const { user } = useContext(AuthContext);
+
+    const [userData, setUserData] = useState("");
+
+    useEffect((
+    ) => {
+        fetch(`http://localhost:5000/user/${user?.email}`)
+            .then((res) => res.json())
+            .then((data) => setUserData(data));
+    }, [user?.email]);
+
 
     return (
         <>
@@ -20,7 +30,7 @@ const UserModal = ({ isOpen, closeModal }) => {
                                         name="name"
                                         placeholder="name"
                                         className="input input-bordered"
-                                        defaultValue={user.displayName}
+                                        defaultValue={userData.username}
                                         required
                                     />
                                 </div>
@@ -35,7 +45,7 @@ const UserModal = ({ isOpen, closeModal }) => {
                                         name="email"
                                         placeholder="email"
                                         className="input input-bordered "
-                                        defaultValue={user.email}
+                                        defaultValue={userData.email}
                                         required
                                     />
                                 </div>
@@ -50,7 +60,7 @@ const UserModal = ({ isOpen, closeModal }) => {
                                         name="institute"
                                         placeholder="school/college/university"
                                         className="input input-bordered "
-                                        // defaultValue={user.institute}
+                                        defaultValue={userData.institute}
                                         required
                                     />
                                 </div>
@@ -65,7 +75,7 @@ const UserModal = ({ isOpen, closeModal }) => {
                                         name="address"
                                         placeholder="address"
                                         className="input input-bordered "
-                                        // defaultValue={user.address}
+                                        defaultValue={userData.address}
                                         required
                                     />
                                 </div>

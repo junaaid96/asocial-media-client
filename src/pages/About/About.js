@@ -1,12 +1,29 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthProvider";
 import UserInfo from "../UserInfo/UserInfo";
 import UserModal from "./UserModal";
+import LoadingScreen from "../LoadingScreen/LoadingScreen";
 
 const About = () => {
     const { user, logOut } = useContext(AuthContext);
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const [userData, setUserData] = useState("");
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetch(`http://localhost:5000/user/${user?.email}`)
+            .then((res) => res.json())
+            .then((data) => {
+                setUserData(data);
+                setLoading(false);
+            });
+    }, [user?.email]);
+
+    if (loading) {
+        return <LoadingScreen />;
+    }
 
     const openModal = (event) => {
         event.preventDefault();
@@ -25,20 +42,20 @@ const About = () => {
                     <div className="flex flex-col items-center">
                         <div className="avatar">
                             <div className="w-24 rounded-full">
-                                <img src={user.photoURL} alt="dp" />
+                                <img src={userData.photo} alt="profile" />
                             </div>
                         </div>
                         <form className="w-96">
                             <div className="form-control">
                                 <label className="label">
-                                    <span className="label-text">Name</span>
+                                    <span className="label-text">Username</span>
                                 </label>
                                 <input
                                     type="text"
-                                    name="name"
-                                    placeholder="name"
+                                    name="username"
+                                    placeholder="username"
                                     className="input input-bordered "
-                                    defaultValue={user.displayName}
+                                    defaultValue={userData.username}
                                     readOnly
                                 />
                             </div>
@@ -51,7 +68,7 @@ const About = () => {
                                     name="email"
                                     placeholder="email"
                                     className="input input-bordered "
-                                    defaultValue={user.email}
+                                    defaultValue={userData.email}
                                     readOnly
                                 />
                             </div>
@@ -66,7 +83,7 @@ const About = () => {
                                     name="institute"
                                     placeholder="school/college/university"
                                     className="input input-bordered "
-                                    // defaultValue={user.institute}
+                                    defaultValue={userData.institute}
                                     readOnly
                                 />
                             </div>
@@ -79,7 +96,7 @@ const About = () => {
                                     name="address"
                                     placeholder="address"
                                     className="input input-bordered "
-                                    // defaultValue={user.address}
+                                    defaultValue={userData.address}
                                     readOnly
                                 />
                             </div>
