@@ -5,7 +5,7 @@ import UserInfo from "../UserInfo/UserInfo";
 import UserModal from "./UserModal";
 
 const About = () => {
-    const { user } = useContext(AuthContext);
+    const { user, logOut } = useContext(AuthContext);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const openModal = (event) => {
@@ -13,7 +13,8 @@ const About = () => {
         setIsModalOpen(true);
     };
 
-    const closeModal = () => {
+    const closeModal = (event) => {
+        event.preventDefault();
         setIsModalOpen(false);
     };
 
@@ -94,6 +95,12 @@ const About = () => {
                                     isOpen={isModalOpen}
                                     closeModal={closeModal}
                                 />
+                                <button
+                                    className="btn btn-outline mt-4"
+                                    onClick={logOut}
+                                >
+                                    Sign Out
+                                </button>
                             </div>
                         </form>
                     </div>

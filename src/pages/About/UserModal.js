@@ -7,9 +7,9 @@ const UserModal = ({ isOpen, closeModal }) => {
     return (
         <>
             {isOpen && (
-                <div className="fixed top-0 left-0 w-full h-full m-auto bg-gray-800 bg-opacity-75 z-50">
-                    <div className="container mx-auto h-full flex justify-center items-center">
-                        <div className="w-96 bg-base-200 rounded-lg shadow-2xl p-6">
+                <div className="fixed top-0 left-0 bottom-0 right-0 bg-base-100 bg-opacity-75">
+                    <div className=" mx-auto h-full flex justify-center items-center">
+                        <div className="w-96 h-1/2 bg-base-300 bg-opacity-75 rounded-lg shadow-2xl p-6">
                             <form className="">
                                 <div className="form-control">
                                     <label className="label">
@@ -19,8 +19,9 @@ const UserModal = ({ isOpen, closeModal }) => {
                                         type="text"
                                         name="name"
                                         placeholder="name"
-                                        className="input input-bordered "
+                                        className="input input-bordered"
                                         defaultValue={user.displayName}
+                                        required
                                     />
                                 </div>
                                 <div className="form-control">
@@ -35,6 +36,7 @@ const UserModal = ({ isOpen, closeModal }) => {
                                         placeholder="email"
                                         className="input input-bordered "
                                         defaultValue={user.email}
+                                        required
                                     />
                                 </div>
                                 <div className="form-control">
@@ -49,6 +51,7 @@ const UserModal = ({ isOpen, closeModal }) => {
                                         placeholder="school/college/university"
                                         className="input input-bordered "
                                         // defaultValue={user.institute}
+                                        required
                                     />
                                 </div>
                                 <div className="form-control">
@@ -63,6 +66,7 @@ const UserModal = ({ isOpen, closeModal }) => {
                                         placeholder="address"
                                         className="input input-bordered "
                                         // defaultValue={user.address}
+                                        required
                                     />
                                 </div>
                                 <button
