@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import loginGif from "../../assets/gif/Login.gif";
+import { FcGoogle } from "react-icons/fc";
 
 const Login = () => {
     return (
@@ -52,6 +53,11 @@ const Login = () => {
                             <button className="btn btn-primary">Login</button>
                         </div>
                     </form>
+                    <div className="divider"></div>
+                    <button className="btn btn-block btn-outline gap-2">
+                        <FcGoogle size={25} />
+                        <p>Login with Google</p>
+                    </button>
                 </div>
             </div>
         </div>
