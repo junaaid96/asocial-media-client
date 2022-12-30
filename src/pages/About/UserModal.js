@@ -15,7 +15,7 @@ const UserModal = ({ isOpen, closeModal }) => {
         queryKey: ["userData", user?.email],
         queryFn: async () => {
             const res = await fetch(
-                `http://localhost:5000/user/${user?.email}`
+                `https://asocial-media-server.vercel.app/user/${user?.email}`
             );
             const data = await res.json();
             return data;
@@ -35,7 +35,7 @@ const UserModal = ({ isOpen, closeModal }) => {
             address,
         };
         console.log(updatedData);
-        fetch(`http://localhost:5000/user/${user?.email}`, {
+        fetch(`https://asocial-media-server.vercel.app/user/${user?.email}`, {
             method: "PATCH",
             headers: {
                 "content-type": "application/json",
@@ -65,7 +65,9 @@ const UserModal = ({ isOpen, closeModal }) => {
                 <div className="fixed top-0 left-0 right-0 bottom-0 bg-base-300 h-fit p-12 w-1/2 z-999 m-auto">
                     <div className=" mx-auto h-full flex justify-center items-center">
                         <div className="w-96 h-1/2 bg-base-100 rounded-lg shadow-2xl p-6">
-                            <h3 className="text-2xl font-bold text-center mb-6">Update User Information</h3>
+                            <h3 className="text-2xl font-bold text-center mb-6">
+                                Update User Information
+                            </h3>
                             <form onSubmit={handleUpdate}>
                                 <div className="form-control">
                                     <label className="label">

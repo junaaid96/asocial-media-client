@@ -35,7 +35,7 @@ const Writings = () => {
                 const writings = data.writings;
                 const photo = imageData.data.display_url;
                 const post = { username, email, writings, photo };
-                fetch("http://localhost:5000/posts", {
+                fetch("https://asocial-media-server.vercel.app/posts", {
                     method: "POST",
                     headers: {
                         "content-type": "application/json; charset=UTF-8",

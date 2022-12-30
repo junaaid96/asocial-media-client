@@ -70,7 +70,7 @@ const SignUp = () => {
                 photo,
             };
             //create a user
-            fetch("http://localhost:5000/users", {
+            fetch("https://asocial-media-server.vercel.app/users", {
                 method: "POST",
                 headers: {
                     "content-type": "application/json",
