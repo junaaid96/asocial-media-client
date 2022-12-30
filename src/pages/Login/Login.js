@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import loginGif from "../../assets/gif/Login.gif";
 import { FcGoogle } from "react-icons/fc";
 import { GoogleAuthProvider } from "firebase/auth";
@@ -9,6 +9,10 @@ const Login = () => {
     const { providerLogin, existingUser } = useContext(AuthContext);
     const googleProvider = new GoogleAuthProvider();
     const [error, setError] = useState("");
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    const from = location.state?.from?.pathname || "/about";
 
     const handleLogin = (event) => {
         event.preventDefault();
@@ -20,6 +24,7 @@ const Login = () => {
                 const user = userCredential.user;
                 console.log(user);
                 setError("");
+                navigate(from, { replace: true });
             })
             .catch((error) => {
                 console.log(error.message);
@@ -43,13 +48,15 @@ const Login = () => {
                 fetch("http://localhost:5000/users", {
                     method: "POST",
                     headers: {
-                        "Content-Type": "application/json",
+                        "content-type": "application/json",
                     },
                     body: JSON.stringify(userData),
                 });
+                navigate(from, { replace: true });
             })
             .catch((error) => {
                 console.log(error.message);
+                setError(error.message);
             });
     };
 

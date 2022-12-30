@@ -1,34 +1,82 @@
-import React, { useContext, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import React, { useContext } from "react";
+import { toast } from "react-hot-toast";
 import { AuthContext } from "../../contexts/AuthProvider";
+import LoadingScreen from "../LoadingScreen/LoadingScreen";
 
 const UserModal = ({ isOpen, closeModal }) => {
     const { user } = useContext(AuthContext);
 
-    const [userData, setUserData] = useState("");
+    const {
+        data: userData = [],
+        isLoading,
+        refetch,
+    } = useQuery({
+        queryKey: ["userData", user?.email],
+        queryFn: async () => {
+            const res = await fetch(
+                `http://localhost:5000/user/${user?.email}`
+            );
+            const data = await res.json();
+            return data;
+        },
+    });
 
-    useEffect((
-    ) => {
-        fetch(`http://localhost:5000/user/${user?.email}`)
+    //update user data
+    const handleUpdate = (event) => {
+        event.preventDefault();
+        const form = event.target;
+        const username = form.username.value;
+        const institute = form.institute.value;
+        const address = form.address.value;
+        const updatedData = {
+            username,
+            institute,
+            address,
+        };
+        console.log(updatedData);
+        fetch(`http://localhost:5000/user/${user?.email}`, {
+            method: "PATCH",
+            headers: {
+                "content-type": "application/json",
+            },
+            body: JSON.stringify(updatedData),
+        })
             .then((res) => res.json())
-            .then((data) => setUserData(data));
-    }, [user?.email]);
+            .then((data) => {
+                console.log(data);
+                if (data.modifiedCount > 0) {
+                    toast.success("Data updated successfully");
+                    refetch();
+                    closeModal();
+                } else {
+                    toast.error("Something went wrong");
+                }
+            });
+    };
 
+    if (isLoading) {
+        return <LoadingScreen />;
+    }
 
     return (
         <>
             {isOpen && (
-                <div className="fixed top-0 left-0 bottom-0 right-0 bg-base-100 bg-opacity-75">
+                <div className="fixed top-0 left-0 right-0 bottom-0 bg-base-300 h-fit p-12 w-1/2 z-999 m-auto">
                     <div className=" mx-auto h-full flex justify-center items-center">
-                        <div className="w-96 h-1/2 bg-base-300 bg-opacity-75 rounded-lg shadow-2xl p-6">
-                            <form className="">
+                        <div className="w-96 h-1/2 bg-base-100 rounded-lg shadow-2xl p-6">
+                            <h3 className="text-2xl font-bold text-center mb-6">Update User Information</h3>
+                            <form onSubmit={handleUpdate}>
                                 <div className="form-control">
                                     <label className="label">
-                                        <span className="label-text">Name</span>
+                                        <span className="label-text">
+                                            Userame
+                                        </span>
                                     </label>
                                     <input
                                         type="text"
-                                        name="name"
-                                        placeholder="name"
+                                        name="username"
+                                        placeholder="username"
                                         className="input input-bordered"
                                         defaultValue={userData.username}
                                         required
@@ -46,7 +94,7 @@ const UserModal = ({ isOpen, closeModal }) => {
                                         placeholder="email"
                                         className="input input-bordered "
                                         defaultValue={userData.email}
-                                        required
+                                        disabled
                                     />
                                 </div>
                                 <div className="form-control">
@@ -80,7 +128,7 @@ const UserModal = ({ isOpen, closeModal }) => {
                                     />
                                 </div>
                                 <button
-                                    onClick={closeModal}
+                                    type="submit"
                                     className="btn btn-primary w-full mt-4"
                                 >
                                     Save

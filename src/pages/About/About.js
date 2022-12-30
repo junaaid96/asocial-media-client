@@ -1,29 +1,24 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useState } from "react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthProvider";
-import UserInfo from "../UserInfo/UserInfo";
+// import UserInfo from "../UserInfo/UserInfo";
 import UserModal from "./UserModal";
 import LoadingScreen from "../LoadingScreen/LoadingScreen";
+import { useQuery } from "@tanstack/react-query";
 
 const About = () => {
     const { user, logOut } = useContext(AuthContext);
     const [isModalOpen, setIsModalOpen] = useState(false);
-
-    const [userData, setUserData] = useState("");
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        fetch(`http://localhost:5000/user/${user?.email}`)
-            .then((res) => res.json())
-            .then((data) => {
-                setUserData(data);
-                setLoading(false);
-            });
-    }, [user?.email]);
-
-    if (loading) {
-        return <LoadingScreen />;
-    }
+    const { data: userData = [], isLoading } = useQuery({
+        queryKey: ["userData", user?.email],
+        queryFn: async () => {
+            const res = await fetch(
+                `http://localhost:5000/user/${user?.email}`
+            );
+            const data = await res.json();
+            return data;
+        },
+    });
 
     const openModal = (event) => {
         event.preventDefault();
@@ -35,8 +30,13 @@ const About = () => {
         setIsModalOpen(false);
     };
 
+    if (isLoading) {
+        return <LoadingScreen />;
+    }
+
     return (
-        <div className="flex flex-col w-full border-opacity-50">
+        <>
+            <h2 className="text-3xl font-bold text-center">User Information</h2>
             <div className="flex gap-3 items-center justify-center h-screen">
                 {user?.email ? (
                     <div className="flex flex-col items-center">
@@ -133,10 +133,8 @@ const About = () => {
                 )}
             </div>
             <div className="divider">you are visiting from</div>
-            <div className="text-center">
-                <UserInfo />
-            </div>
-        </div>
+            <div className="text-center">{/* <UserInfo /> */}</div>
+        </>
     );
 };
 

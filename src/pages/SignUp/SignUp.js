@@ -1,7 +1,7 @@
 import React, { useContext, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import signUpGif from "../../assets/gif/SignUp.gif";
 import { AuthContext } from "../../contexts/AuthProvider";
 import CreatingAccount from "../LoadingScreen/CreatingAccount";
@@ -14,9 +14,10 @@ const SignUp = () => {
         reset,
     } = useForm();
     const [loading, setLoading] = useState(false);
-    const { createUser } = useContext(AuthContext);
+    const { createUser, updateUser } = useContext(AuthContext);
     const [error, setError] = useState("");
     const userImageHostingKey = process.env.REACT_APP_imgbb_api;
+    const navigate = useNavigate();
 
     const handleSignUp = (data) => {
         if (!error) {
@@ -38,6 +39,12 @@ const SignUp = () => {
                     .then((userCredential) => {
                         const user = userCredential.user;
                         console.log(user);
+                        const userInformation = {
+                            displayName: data.username,
+                        };
+                        //update user's display name
+                        updateUser(userInformation);
+                        //save user's data to database
                         saveUserData(
                             data.username,
                             data.email,
@@ -45,6 +52,7 @@ const SignUp = () => {
                             data.address,
                             imageData.data.display_url
                         );
+                        navigate("/about");
                     })
                     .catch((err) => {
                         console.log(err);
