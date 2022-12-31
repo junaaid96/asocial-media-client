@@ -8,7 +8,7 @@ import { toast } from "react-hot-toast";
 // import VisitingInfo from "../VisitingInfo/VisitingInfo";
 
 const About = () => {
-    const { user, logOut } = useContext(AuthContext);
+    const { user, updateUser, logOut } = useContext(AuthContext);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { userInformation } = useContext(UserDataContext);
     const { userData, isLoading, refetch } = userInformation;
@@ -28,6 +28,26 @@ const About = () => {
             body: JSON.stringify(updatedData),
         }).then((res) => {
             if (res.status === 200) {
+                const userInformation = {
+                    displayName: data.username,
+                };
+                console.log(userInformation);
+                console.log(user);
+                //update user's display name
+                updateUser(userInformation);
+                //update existing post's username
+                fetch(
+                    `https://asocial-media-server.onrender.com/posts/${user?.email}`,
+                    {
+                        method: "PATCH",
+                        headers: {
+                            "content-type": "application/json",
+                        },
+                        body: JSON.stringify({ username: data.username }),
+                    }
+                )
+                    .then((res) => res.json())
+                    .then((data) => console.log(data));
                 toast.success("Saved successfully");
                 refetch();
                 closeModal();

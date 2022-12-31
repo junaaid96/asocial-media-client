@@ -15,19 +15,18 @@ const AllMedia = () => {
         },
     });
 
-    if (isLoading) {
-        <LoadingScreen />;
-    }
-
     return (
-        <div className="flex flex-col gap-3 w-1/2 m-auto">
-            {allPosts.map((singlePost) => (
-                <AllMediaCard
-                    key={singlePost.key}
-                    singlePost={singlePost}
-                ></AllMediaCard>
-            ))}
-        </div>
+        <>
+            {isLoading && <LoadingScreen />}
+            <div className="flex flex-col gap-3 w-1/2 m-auto">
+                {allPosts.map((singlePost) => (
+                    <AllMediaCard
+                        key={singlePost.key}
+                        singlePost={singlePost}
+                    ></AllMediaCard>
+                ))}
+            </div>
+        </>
     );
 };
 

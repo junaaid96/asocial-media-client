@@ -2,8 +2,8 @@ import React from 'react';
 
 const Message = () => {
     return (
-        <div>
-            Message
+        <div className='text-2xl text-center gont-bold'>
+            This feature will be implemented soon...
         </div>
     );
 };
