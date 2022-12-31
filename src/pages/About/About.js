@@ -1,10 +1,10 @@
 import React, { useContext, useState } from "react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthProvider";
-// import UserInfo from "../UserInfo/UserInfo";
 import UserModal from "./UserModal";
 import LoadingScreen from "../LoadingScreen/LoadingScreen";
 import { useQuery } from "@tanstack/react-query";
+import VisitingInfo from "../VisitingInfo/VisitingInfo";
 
 const About = () => {
     const { user, logOut } = useContext(AuthContext);
@@ -13,7 +13,7 @@ const About = () => {
         queryKey: ["userData", user?.email],
         queryFn: async () => {
             const res = await fetch(
-                `https://asocial-media-server.vercel.app/user/${user?.email}`
+                `https://asocial-media-server.onrender.com/user/${user?.email}`
             );
             const data = await res.json();
             return data;
@@ -133,7 +133,7 @@ const About = () => {
                 )}
             </div>
             <div className="divider">you are visiting from</div>
-            <div className="text-center">{/* <UserInfo /> */}</div>
+            <div className="text-center">{<VisitingInfo />}</div>
         </>
     );
 };

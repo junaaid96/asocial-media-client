@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import LoadingScreen from "../LoadingScreen/LoadingScreen";
 
-const UserInfo = () => {
+const VisitingInfo = () => {
     const [ip, setIp] = useState("");
     const [location, setLocation] = useState("");
     const [loading, setLoading] = useState(true);
@@ -38,4 +38,4 @@ const UserInfo = () => {
     );
 };
 
-export default UserInfo;
+export default VisitingInfo;

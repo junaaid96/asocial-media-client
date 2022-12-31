@@ -15,7 +15,7 @@ const UserModal = ({ isOpen, closeModal }) => {
         queryKey: ["userData", user?.email],
         queryFn: async () => {
             const res = await fetch(
-                `https://asocial-media-server.vercel.app/user/${user?.email}`
+                `https://asocial-media-server.onrender.com/user/${user?.email}`
             );
             const data = await res.json();
             return data;
@@ -35,7 +35,7 @@ const UserModal = ({ isOpen, closeModal }) => {
             address,
         };
         console.log(updatedData);
-        fetch(`https://asocial-media-server.vercel.app/user/${user?.email}`, {
+        fetch(`https://asocial-media-server.onrender.com/user/${user?.email}`, {
             method: "PATCH",
             headers: {
                 "content-type": "application/json",

@@ -10,7 +10,7 @@ const Media = () => {
         queryKey: ["userPosts", user?.email],
         queryFn: async () => {
             const res = await fetch(
-                `https://asocial-media-server.vercel.app/posts/${user?.email}`
+                `https://asocial-media-server.onrender.com/posts/${user?.email}`
             );
             const data = await res.json();
             console.log(data);
