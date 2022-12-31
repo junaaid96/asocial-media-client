@@ -1,7 +1,7 @@
 import React from "react";
 
-const MediaCards = ({ post }) => {
-    const { username, writings, photo } = post;
+const AllMediaCard = ({ singlePost }) => {
+    const { username, writings, photo } = singlePost;
     return (
         <div className="card h-fit bg-black shadow-xl">
             <figure>
@@ -37,4 +37,4 @@ const MediaCards = ({ post }) => {
     );
 };
 
-export default MediaCards;
+export default AllMediaCard;

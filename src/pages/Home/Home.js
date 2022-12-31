@@ -1,5 +1,6 @@
 import React, { useContext } from "react";
 import { AuthContext } from "../../contexts/AuthProvider";
+import AllMedia from "../Media/AllMedia";
 import Writings from "../Writings/Writings";
 import Header from "./Header/Header";
 
@@ -12,6 +13,7 @@ const Home = () => {
             ) : (
                 <>
                     <Writings />
+                    <AllMedia/>
                 </>
             )}
         </>

@@ -3,30 +3,43 @@ import { Link } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthProvider";
 import UserModal from "./UserModal";
 import LoadingScreen from "../LoadingScreen/LoadingScreen";
-import { useQuery } from "@tanstack/react-query";
-import VisitingInfo from "../VisitingInfo/VisitingInfo";
+import { UserDataContext } from "../../contexts/UserData";
+import { toast } from "react-hot-toast";
+// import VisitingInfo from "../VisitingInfo/VisitingInfo";
 
 const About = () => {
     const { user, logOut } = useContext(AuthContext);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const { data: userData = [], isLoading } = useQuery({
-        queryKey: ["userData", user?.email],
-        queryFn: async () => {
-            const res = await fetch(
-                `https://asocial-media-server.onrender.com/user/${user?.email}`
-            );
-            const data = await res.json();
-            return data;
-        },
-    });
+    const { userInformation } = useContext(UserDataContext);
+    const { userData, isLoading, refetch } = userInformation;
 
-    const openModal = (event) => {
-        event.preventDefault();
+    //update user data
+    const handleUpdate = (data) => {
+        const updatedData = {
+            username: data.username,
+            institute: data.institute,
+            address: data.address,
+        };
+        fetch(`https://asocial-media-server.onrender.com/user/${user?.email}`, {
+            method: "PATCH",
+            headers: {
+                "content-type": "application/json",
+            },
+            body: JSON.stringify(updatedData),
+        }).then((res) => {
+            if (res.status === 200) {
+                toast.success("Saved successfully");
+                refetch();
+                closeModal();
+            }
+        });
+    };
+
+    const openModal = () => {
         setIsModalOpen(true);
     };
 
-    const closeModal = (event) => {
-        event.preventDefault();
+    const closeModal = () => {
         setIsModalOpen(false);
     };
 
@@ -45,7 +58,7 @@ const About = () => {
                                 <img src={userData.photo} alt="profile" />
                             </div>
                         </div>
-                        <form className="w-96">
+                        <div className="w-96">
                             <div className="form-control">
                                 <label className="label">
                                     <span className="label-text">Username</span>
@@ -100,7 +113,6 @@ const About = () => {
                                     readOnly
                                 />
                             </div>
-                            <UserModal />
                             <div className="form-control mt-6">
                                 <button
                                     className="btn btn-primary"
@@ -111,6 +123,7 @@ const About = () => {
                                 <UserModal
                                     isOpen={isModalOpen}
                                     closeModal={closeModal}
+                                    handleUpdate={handleUpdate}
                                 />
                                 <button
                                     className="btn btn-outline mt-4"
@@ -119,7 +132,7 @@ const About = () => {
                                     Sign Out
                                 </button>
                             </div>
-                        </form>
+                        </div>
                     </div>
                 ) : (
                     <>
@@ -133,7 +146,7 @@ const About = () => {
                 )}
             </div>
             <div className="divider">you are visiting from</div>
-            <div className="text-center">{<VisitingInfo />}</div>
+            {/* <div className="text-center">{<VisitingInfo />}</div> */}
         </>
     );
 };

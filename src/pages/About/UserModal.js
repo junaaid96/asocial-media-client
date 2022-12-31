@@ -1,59 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
 import React, { useContext } from "react";
-import { toast } from "react-hot-toast";
-import { AuthContext } from "../../contexts/AuthProvider";
+import { useForm } from "react-hook-form";
+import { UserDataContext } from "../../contexts/UserData";
 import LoadingScreen from "../LoadingScreen/LoadingScreen";
 
-const UserModal = ({ isOpen, closeModal }) => {
-    const { user } = useContext(AuthContext);
-
+const UserModal = ({ isOpen, closeModal, handleUpdate }) => {
     const {
-        data: userData = [],
-        isLoading,
-        refetch,
-    } = useQuery({
-        queryKey: ["userData", user?.email],
-        queryFn: async () => {
-            const res = await fetch(
-                `https://asocial-media-server.onrender.com/user/${user?.email}`
-            );
-            const data = await res.json();
-            return data;
-        },
-    });
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm();
 
-    //update user data
-    const handleUpdate = (event) => {
-        event.preventDefault();
-        const form = event.target;
-        const username = form.username.value;
-        const institute = form.institute.value;
-        const address = form.address.value;
-        const updatedData = {
-            username,
-            institute,
-            address,
-        };
-        console.log(updatedData);
-        fetch(`https://asocial-media-server.onrender.com/user/${user?.email}`, {
-            method: "PATCH",
-            headers: {
-                "content-type": "application/json",
-            },
-            body: JSON.stringify(updatedData),
-        })
-            .then((res) => res.json())
-            .then((data) => {
-                console.log(data);
-                if (data.modifiedCount > 0) {
-                    toast.success("Data updated successfully");
-                    refetch();
-                    closeModal();
-                } else {
-                    toast.error("Something went wrong");
-                }
-            });
-    };
+    const { userInformation } = useContext(UserDataContext);
+    const { userData, isLoading } = userInformation;
 
     if (isLoading) {
         return <LoadingScreen />;
@@ -68,21 +26,27 @@ const UserModal = ({ isOpen, closeModal }) => {
                             <h3 className="text-2xl font-bold text-center mb-6">
                                 Update User Information
                             </h3>
-                            <form onSubmit={handleUpdate}>
+                            <div>
                                 <div className="form-control">
                                     <label className="label">
                                         <span className="label-text">
-                                            Userame
+                                            Username
                                         </span>
                                     </label>
                                     <input
+                                        {...register("username", {
+                                            required: "Username is Required",
+                                        })}
                                         type="text"
-                                        name="username"
                                         placeholder="username"
-                                        className="input input-bordered"
                                         defaultValue={userData.username}
-                                        required
+                                        className="input input-bordered"
                                     />
+                                    {errors.username && (
+                                        <p className="text-red-500">
+                                            {errors.username.message}
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="form-control">
                                     <label className="label">
@@ -91,13 +55,20 @@ const UserModal = ({ isOpen, closeModal }) => {
                                         </span>
                                     </label>
                                     <input
+                                        {...register("email", {
+                                            required: "Email is Required",
+                                        })}
                                         type="email"
-                                        name="email"
                                         placeholder="email"
-                                        className="input input-bordered "
                                         defaultValue={userData.email}
-                                        disabled
+                                        className="input input-bordered "
+                                        readOnly
                                     />
+                                    {errors.email && (
+                                        <p className="text-red-500">
+                                            {errors.email.message}
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="form-control">
                                     <label className="label">
@@ -106,13 +77,19 @@ const UserModal = ({ isOpen, closeModal }) => {
                                         </span>
                                     </label>
                                     <input
+                                        {...register("institute", {
+                                            required: "Institute is Required",
+                                        })}
                                         type="text"
-                                        name="institute"
                                         placeholder="school/college/university"
-                                        className="input input-bordered "
                                         defaultValue={userData.institute}
-                                        required
+                                        className="input input-bordered"
                                     />
+                                    {errors.institute && (
+                                        <p className="text-red-500">
+                                            {errors.institute.message}
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="form-control">
                                     <label className="label">
@@ -121,21 +98,27 @@ const UserModal = ({ isOpen, closeModal }) => {
                                         </span>
                                     </label>
                                     <input
+                                        {...register("address", {
+                                            required: "Address is Required",
+                                        })}
                                         type="text"
-                                        name="address"
                                         placeholder="address"
-                                        className="input input-bordered "
                                         defaultValue={userData.address}
-                                        required
+                                        className="input input-bordered"
                                     />
+                                    {errors.address && (
+                                        <p className="text-red-500">
+                                            {errors.address.message}
+                                        </p>
+                                    )}
                                 </div>
                                 <button
-                                    type="submit"
+                                    onClick={handleSubmit(handleUpdate)}
                                     className="btn btn-primary w-full mt-4"
                                 >
                                     Save
                                 </button>
-                            </form>
+                            </div>
                             <button
                                 onClick={closeModal}
                                 className="btn btn-outline w-full mt-4"
