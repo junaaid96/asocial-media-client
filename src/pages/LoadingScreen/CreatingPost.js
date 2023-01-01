@@ -1,13 +1,13 @@
-import React from 'react';
+import React from "react";
 import ReactLoading from "react-loading";
 
-const CreatingAccount = () => {
+const CreatingPost = () => {
     return (
         <div className="flex flex-col items-center my-20">
             <ReactLoading type="cubes" />
-            <p>Creating ccount</p>
+            <p>Creating Post</p>
         </div>
     );
 };
 
-export default CreatingAccount;
+export default CreatingPost;

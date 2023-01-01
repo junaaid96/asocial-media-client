@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthProvider";
-import LoadingScreen from "../LoadingScreen/LoadingScreen";
+import CreatingPost from "../LoadingScreen/CreatingPost";
 
 const Writings = () => {
     const {
@@ -53,7 +53,7 @@ const Writings = () => {
     };
 
     if (loading) {
-        return <LoadingScreen />;
+        return <CreatingPost />;
     }
 
     return (

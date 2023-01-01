@@ -3,9 +3,9 @@ import ReactLoading from "react-loading";
 
 const LoadingScreen = () => {
     return (
-        <div className="flex flex-col items-center mt-20">
+        <div className="flex flex-col items-center my-20">
             <ReactLoading type="spinningBubbles" />
-            <p>Please wait</p>
+            <p>Please Wait</p>
         </div>
     );
 };

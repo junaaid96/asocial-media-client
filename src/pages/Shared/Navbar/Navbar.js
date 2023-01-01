@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useContext } from "react";
 import { Link } from "react-router-dom";
+import { AuthContext } from "../../../contexts/AuthProvider";
 
 const Navbar = () => {
+    const { user } = useContext(AuthContext);
     return (
         <div className="navbar bg-base-100">
             <div className="flex-1">
@@ -17,16 +19,18 @@ const Navbar = () => {
                     <li>
                         <Link to="/media">Media</Link>
                     </li>
-                    <li>
-                        <Link to="/message">
-                            <div className="indicator">
-                                <span className="indicator-item badge badge-secondary">
-                                    0
-                                </span>
-                                Message
-                            </div>
-                        </Link>
-                    </li>
+                    {user && (
+                        <li>
+                            <Link to="/message">
+                                <div className="indicator">
+                                    <span className="indicator-item badge badge-secondary">
+                                        0
+                                    </span>
+                                    Message
+                                </div>
+                            </Link>
+                        </li>
+                    )}
                     <li>
                         <Link to="/about">About</Link>
                     </li>
