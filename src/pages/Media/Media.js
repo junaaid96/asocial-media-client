@@ -24,12 +24,20 @@ const Media = () => {
 
     return (
         <>
-            <h2 className="text-2xl text-center mb-6">Your all posts</h2>
-            <div className="flex flex-col gap-6 m-6 lg:w-1/2 lg:m-auto lg:mb-6">
-                {userPosts.map((post) => (
-                    <MediaCards key={post.key} post={post}></MediaCards>
-                ))}
-            </div>
+            <h2 className="text-3xl font-bold text-center mb-6">
+                Your all posts
+            </h2>
+            {userPosts.length > 0 ? (
+                <div className="flex flex-col gap-6 m-6 lg:w-1/2 lg:m-auto lg:mb-6">
+                    {userPosts.map((post) => (
+                        <MediaCards key={post.key} post={post}></MediaCards>
+                    ))}
+                </div>
+            ) : (
+                <p className="text-xl text-center mb-6">
+                    You didn't post anything yet!
+                </p>
+            )}
         </>
     );
 };

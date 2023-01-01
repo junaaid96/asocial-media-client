@@ -15,9 +15,9 @@ const Home = () => {
             ) : (
                 <>
                     <Header />
-                    <AllMedia />
                 </>
             )}
+            <AllMedia />
         </>
     );
 };

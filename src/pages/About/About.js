@@ -35,19 +35,32 @@ const About = () => {
                 console.log(user);
                 //update user's display name
                 updateUser(userInformation);
-                //update existing post's username
+                //check if the user's has any post
                 fetch(
-                    `https://asocial-media-server.onrender.com/posts/${user?.email}`,
-                    {
-                        method: "PATCH",
-                        headers: {
-                            "content-type": "application/json",
-                        },
-                        body: JSON.stringify({ username: data.username }),
-                    }
+                    `https://asocial-media-server.onrender.com/posts/${user?.email}`
                 )
                     .then((res) => res.json())
-                    .then((data) => console.log(data));
+                    .then((data) => {
+                        if (data.length > 0) {
+                            console.log(data);
+                            //update existing post's username
+                            fetch(
+                                `https://asocial-media-server.onrender.com/posts/${user?.email}`,
+                                {
+                                    method: "PATCH",
+                                    headers: {
+                                        "content-type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                        username: data.username,
+                                    }),
+                                }
+                            )
+                                .then((res) => res.json())
+                                .then((data) => console.log(data));
+                        }
+                    });
+
                 toast.success("Saved successfully");
                 refetch();
                 closeModal();
