@@ -8,12 +8,14 @@ const Home = () => {
     const { user } = useContext(AuthContext);
     return (
         <>
-            {!user ? (
-                <Header />
-            ) : (
+            {user ? (
                 <>
                     <Writings />
-                    <AllMedia/>
+                </>
+            ) : (
+                <>
+                    <Header />
+                    <AllMedia />
                 </>
             )}
         </>

@@ -6,6 +6,7 @@ import Media from "../pages/Media/Media";
 import Message from "../pages/Message/Message";
 import Login from "../pages/Login/Login";
 import SignUp from "../pages/SignUp/SignUp";
+import PrivateRoutes from "./PrivateRoutes/PrivateRoutes";
 const { createBrowserRouter } = require("react-router-dom");
 
 const router = createBrowserRouter([
@@ -20,25 +21,36 @@ const router = createBrowserRouter([
             },
             {
                 path: "/media",
-                element: <Media />,
+                element: (
+                    <PrivateRoutes>
+                        <Media />
+                    </PrivateRoutes>
+                ),
             },
             {
                 path: "/message",
-                element: <Message />,
+                element: (
+                    <PrivateRoutes>
+                        <Message />
+                    </PrivateRoutes>
+                ),
             },
             {
                 path: "/about",
-                element: <About />,
+                element: (
+                    <PrivateRoutes>
+                        <About />
+                    </PrivateRoutes>
+                ),
             },
             {
                 path: "/login",
                 element: <Login />,
-
             },
             {
                 path: "/signup",
                 element: <SignUp />,
-            }
+            },
         ],
     },
     {
