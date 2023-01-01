@@ -57,7 +57,7 @@ const Writings = () => {
     }
 
     return (
-        <div className="w-1/2 m-auto bg-base-300 p-5">
+        <div className="bg-base-300 p-6 m-6 lg:w-1/2 lg:m-auto lg:mb-6">
             <form onSubmit={handleSubmit(handlePost)}>
                 <div className="form-control">
                     <input

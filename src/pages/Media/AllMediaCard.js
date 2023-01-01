@@ -7,7 +7,7 @@ const AllMediaCard = ({ singlePost }) => {
             <figure>
                 <img
                     src={photo}
-                    alt="Shoes"
+                    alt="post"
                     style={{ height: "28rem", width: "28rem" }}
                 />
             </figure>

@@ -18,7 +18,7 @@ const AllMedia = () => {
     return (
         <>
             {isLoading && <LoadingScreen />}
-            <div className="flex flex-col gap-3 w-1/2 m-auto">
+            <div className="flex flex-col gap-6 m-6 lg:w-1/2 lg:m-auto lg:mb-6">
                 {allPosts.map((singlePost) => (
                     <AllMediaCard
                         key={singlePost.key}

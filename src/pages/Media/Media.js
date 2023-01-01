@@ -25,7 +25,7 @@ const Media = () => {
     return (
         <>
             <h2 className="text-2xl text-center mb-6">Your all posts</h2>
-            <div className="flex flex-col gap-3 w-1/2 m-auto">
+            <div className="flex flex-col gap-6 m-6 lg:w-1/2 lg:m-auto lg:mb-6">
                 {userPosts.map((post) => (
                     <MediaCards key={post.key} post={post}></MediaCards>
                 ))}
