@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthProvider";
 import UserModal from "./UserModal";
@@ -12,6 +12,12 @@ const About = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { userInformation } = useContext(UserDataContext);
     const { userData, isLoading, refetch } = userInformation;
+    const [newUserData, setNewUserData] = useState([]);
+
+    //update state with updated user information after closing modal
+    useEffect(() => {
+        setNewUserData(userData);
+    }, [userData]);
 
     //update user data
     const handleUpdate = (data) => {
@@ -35,31 +41,21 @@ const About = () => {
                 console.log(user);
                 //update user's display name
                 updateUser(userInformation);
-                //check if the user's has any post
+                //update existing post's username
                 fetch(
-                    `https://asocial-media-server.onrender.com/posts/${user?.email}`
+                    `https://asocial-media-server.onrender.com/posts/${user?.email}`,
+                    {
+                        method: "PATCH",
+                        headers: {
+                            "content-type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            username: data.username,
+                        }),
+                    }
                 )
                     .then((res) => res.json())
-                    .then((data) => {
-                        if (data.length > 0) {
-                            console.log(data);
-                            //update existing post's username
-                            fetch(
-                                `https://asocial-media-server.onrender.com/posts/${user?.email}`,
-                                {
-                                    method: "PATCH",
-                                    headers: {
-                                        "content-type": "application/json",
-                                    },
-                                    body: JSON.stringify({
-                                        username: data.username,
-                                    }),
-                                }
-                            )
-                                .then((res) => res.json())
-                                .then((data) => console.log(data));
-                        }
-                    });
+                    .then((data) => console.log(data));
 
                 toast.success("Saved successfully");
                 refetch();
@@ -101,7 +97,7 @@ const About = () => {
                                     name="username"
                                     placeholder="username"
                                     className="input input-bordered "
-                                    defaultValue={userData.username}
+                                    defaultValue={newUserData.username}
                                     readOnly
                                 />
                             </div>
@@ -129,7 +125,7 @@ const About = () => {
                                     name="institute"
                                     placeholder="school/college/university"
                                     className="input input-bordered "
-                                    defaultValue={userData.institute}
+                                    defaultValue={newUserData.institute}
                                     readOnly
                                 />
                             </div>
@@ -142,7 +138,7 @@ const About = () => {
                                     name="address"
                                     placeholder="address"
                                     className="input input-bordered "
-                                    defaultValue={userData.address}
+                                    defaultValue={newUserData.address}
                                     readOnly
                                 />
                             </div>
