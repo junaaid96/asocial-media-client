@@ -1,5 +1,4 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthProvider";
 import UserModal from "./UserModal";
 import LoadingScreen from "../LoadingScreen/LoadingScreen";
@@ -80,99 +79,86 @@ const About = () => {
         <>
             <h2 className="text-3xl font-bold text-center">User Information</h2>
             <div className="flex gap-3 items-center justify-center h-screen">
-                {user?.email ? (
-                    <div className="flex flex-col items-center">
-                        <div className="avatar">
-                            <div className="w-24 rounded-full">
-                                <img src={userData.photo} alt="profile" />
-                            </div>
-                        </div>
-                        <div className="w-96">
-                            <div className="form-control">
-                                <label className="label">
-                                    <span className="label-text">Username</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="username"
-                                    placeholder="username"
-                                    className="input input-bordered "
-                                    defaultValue={newUserData.username}
-                                    readOnly
-                                />
-                            </div>
-                            <div className="form-control">
-                                <label className="label">
-                                    <span className="label-text">Email</span>
-                                </label>
-                                <input
-                                    type="email"
-                                    name="email"
-                                    placeholder="email"
-                                    className="input input-bordered "
-                                    defaultValue={userData.email}
-                                    readOnly
-                                />
-                            </div>
-                            <div className="form-control">
-                                <label className="label">
-                                    <span className="label-text">
-                                        Institute
-                                    </span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="institute"
-                                    placeholder="school/college/university"
-                                    className="input input-bordered "
-                                    defaultValue={newUserData.institute}
-                                    readOnly
-                                />
-                            </div>
-                            <div className="form-control">
-                                <label className="label">
-                                    <span className="label-text">Address</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="address"
-                                    placeholder="address"
-                                    className="input input-bordered "
-                                    defaultValue={newUserData.address}
-                                    readOnly
-                                />
-                            </div>
-                            <div className="form-control mt-6">
-                                <button
-                                    className="btn btn-primary"
-                                    onClick={openModal}
-                                >
-                                    Edit
-                                </button>
-                                <UserModal
-                                    isOpen={isModalOpen}
-                                    closeModal={closeModal}
-                                    handleUpdate={handleUpdate}
-                                />
-                                <button
-                                    className="btn btn-outline mt-4"
-                                    onClick={logOut}
-                                >
-                                    Sign Out
-                                </button>
-                            </div>
+                <div className="flex flex-col items-center">
+                    <div className="avatar">
+                        <div className="w-24 rounded-full">
+                            <img src={userData.photo} alt="profile" />
                         </div>
                     </div>
-                ) : (
-                    <>
-                        <Link to="/login">
-                            <button className="btn btn-primary">Login</button>
-                        </Link>
-                        <Link to="/signup">
-                            <button className="btn btn-primary">Sign Up</button>
-                        </Link>
-                    </>
-                )}
+                    <div className="w-96">
+                        <div className="form-control">
+                            <label className="label">
+                                <span className="label-text">Username</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="username"
+                                placeholder="username"
+                                className="input input-bordered "
+                                defaultValue={newUserData.username}
+                                readOnly
+                            />
+                        </div>
+                        <div className="form-control">
+                            <label className="label">
+                                <span className="label-text">Email</span>
+                            </label>
+                            <input
+                                type="email"
+                                name="email"
+                                placeholder="email"
+                                className="input input-bordered "
+                                defaultValue={userData.email}
+                                readOnly
+                            />
+                        </div>
+                        <div className="form-control">
+                            <label className="label">
+                                <span className="label-text">Institute</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="institute"
+                                placeholder="school/college/university"
+                                className="input input-bordered "
+                                defaultValue={newUserData.institute}
+                                readOnly
+                            />
+                        </div>
+                        <div className="form-control">
+                            <label className="label">
+                                <span className="label-text">Address</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="address"
+                                placeholder="address"
+                                className="input input-bordered "
+                                defaultValue={newUserData.address}
+                                readOnly
+                            />
+                        </div>
+                        <div className="form-control mt-6">
+                            <button
+                                className="btn btn-primary"
+                                onClick={openModal}
+                            >
+                                Edit
+                            </button>
+                            <UserModal
+                                isOpen={isModalOpen}
+                                closeModal={closeModal}
+                                handleUpdate={handleUpdate}
+                            />
+                            <button
+                                className="btn btn-outline mt-4"
+                                onClick={logOut}
+                            >
+                                Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div className="divider">you are visiting from</div>
             {/* <div className="text-center">{<VisitingInfo />}</div> */}
