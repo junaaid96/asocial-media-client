@@ -15,11 +15,13 @@ const AllMediaCard = ({ singlePost }) => {
                 <h2 className="card-title">{username}</h2>
                 <p>{writings}</p>
                 <div className="card-actions flex-col gap-6">
-                    <div className="indicator">
-                        <span className="indicator-item badge badge-primary">
+                    <div>
+                        <button className="btn btn-outline btn-primary btn-sm">
+                            Like
+                        </button>
+                        <span className="indicator-item badge badge-ghost">
                             0
                         </span>
-                        <button className="btn">Like</button>
                     </div>
                     <div className="flex items-center gap-3 w-full">
                         <textarea
