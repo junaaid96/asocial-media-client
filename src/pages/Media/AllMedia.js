@@ -5,7 +5,7 @@ import LoadingScreen from "../LoadingScreen/LoadingScreen";
 
 const AllMedia = () => {
     const { data: allPosts = [], isLoading } = useQuery({
-        queryKey: "allPosts",
+        queryKey: ["allPosts"],
         queryFn: async () => {
             const res = await fetch(
                 "https://asocial-media-server.onrender.com/posts"
@@ -21,7 +21,7 @@ const AllMedia = () => {
             <div className="flex flex-col gap-6 m-6 lg:w-1/2 lg:m-auto lg:mb-6">
                 {allPosts.map((singlePost) => (
                     <AllMediaCard
-                        key={singlePost.key}
+                        key={singlePost._id}
                         singlePost={singlePost}
                     ></AllMediaCard>
                 ))}
