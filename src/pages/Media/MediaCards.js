@@ -12,7 +12,7 @@ const MediaCards = ({ post, refetch }) => {
     };
 
     // const handleEdit = () => {
-    //     fetch(`http://localhost:5000/post/${_id}`, {
+    //     fetch(`https://asocial-media-server.onrender.com/post/${_id}`, {
     //         method: "PATCH",
     //         headers: {
     //             "content-type": "application/json",
@@ -28,7 +28,7 @@ const MediaCards = ({ post, refetch }) => {
     // };
 
     const handleDelete = () => {
-        fetch(`http://localhost:5000/post/${_id}`, {
+        fetch(`https://asocial-media-server.onrender.com/post/${_id}`, {
             method: "DELETE",
         }).then((res) => {
             if (res.status === 200) {
