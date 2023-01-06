@@ -23,7 +23,7 @@ const AllMediaCard = ({ singlePost }) => {
     } = useQuery({
         queryKey: ["userComments", _id],
         queryFn: async () => {
-            const res = await fetch(`http://localhost:5000/comments/${_id}`);
+            const res = await fetch(`https://asocial-media-server.onrender.com/comments/${_id}`);
             const data = await res.json();
             console.log(data);
             return data;
@@ -43,7 +43,7 @@ const AllMediaCard = ({ singlePost }) => {
             comment: data.comment,
         };
         console.log(comment);
-        fetch("http://localhost:5000/comments", {
+        fetch("https://asocial-media-server.onrender.com/comments", {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(comment),
@@ -79,7 +79,7 @@ const AllMediaCard = ({ singlePost }) => {
                         </div>
                         <div className="w-full">
                             <form
-                                className="flex gap-1 items-center3"
+                                className="flex gap-1 items-center"
                                 onSubmit={handleSubmit(handleAddComment)}
                             >
                                 <div className="w-full">

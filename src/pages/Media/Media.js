@@ -37,7 +37,7 @@ const Media = () => {
                         <MediaCards
                             key={post._id}
                             post={post}
-                            refetch={refetch}
+                            refetchPost={refetch}
                         ></MediaCards>
                     ))}
                 </div>
