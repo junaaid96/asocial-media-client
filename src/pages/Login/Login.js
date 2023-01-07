@@ -45,7 +45,7 @@ const Login = () => {
                     address: "",
                     photo: photoURL,
                 };
-                fetch("https://asocial-media-server.onrender.com/users", {
+                fetch("https://asocial-media-server.vercel.app/users", {
                     method: "POST",
                     headers: {
                         "content-type": "application/json",

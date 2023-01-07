@@ -26,7 +26,7 @@ const MediaCards = ({ post, refetchPost }) => {
         queryKey: ["userComments", _id],
         queryFn: async () => {
             const res = await fetch(
-                `https://asocial-media-server.onrender.com/comments/${_id}`
+                `https://asocial-media-server.vercel.app/comments/${_id}`
             );
             const data = await res.json();
             console.log(data);
@@ -47,7 +47,7 @@ const MediaCards = ({ post, refetchPost }) => {
             comment: data.comment,
         };
         console.log(comment);
-        fetch("https://asocial-media-server.onrender.com/comments", {
+        fetch("https://asocial-media-server.vercel.app/comments", {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(comment),
@@ -65,7 +65,7 @@ const MediaCards = ({ post, refetchPost }) => {
     };
 
     // const handleEdit = () => {
-    //     fetch(`https://asocial-media-server.onrender.com/post/${_id}`, {
+    //     fetch(`https://asocial-media-server.vercel.app/post/${_id}`, {
     //         method: "PATCH",
     //         headers: {
     //             "content-type": "application/json",
@@ -81,7 +81,7 @@ const MediaCards = ({ post, refetchPost }) => {
     // };
 
     const handleDelete = () => {
-        fetch(`https://asocial-media-server.onrender.com/post/${_id}`, {
+        fetch(`https://asocial-media-server.vercel.app/post/${_id}`, {
             method: "DELETE",
         }).then((res) => {
             if (res.status === 200) {

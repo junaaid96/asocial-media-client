@@ -14,7 +14,7 @@ const UserData = ({ children }) => {
         queryKey: ["userData", user?.email],
         queryFn: async () => {
             const res = await fetch(
-                `https://asocial-media-server.onrender.com/user/${user?.email}`
+                `https://asocial-media-server.vercel.app/user/${user?.email}`
             );
             const data = await res.json();
             return data;

@@ -23,7 +23,9 @@ const AllMediaCard = ({ singlePost }) => {
     } = useQuery({
         queryKey: ["userComments", _id],
         queryFn: async () => {
-            const res = await fetch(`https://asocial-media-server.onrender.com/comments/${_id}`);
+            const res = await fetch(
+                `https://asocial-media-server.vercel.app/comments/${_id}`
+            );
             const data = await res.json();
             console.log(data);
             return data;
@@ -43,7 +45,7 @@ const AllMediaCard = ({ singlePost }) => {
             comment: data.comment,
         };
         console.log(comment);
-        fetch("https://asocial-media-server.onrender.com/comments", {
+        fetch("https://asocial-media-server.vercel.app/comments", {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(comment),

@@ -8,7 +8,7 @@ const AllMedia = () => {
         queryKey: ["allPosts"],
         queryFn: async () => {
             const res = await fetch(
-                "https://asocial-media-server.onrender.com/posts"
+                "https://asocial-media-server.vercel.app/posts"
             );
             const data = await res.json();
             return data;

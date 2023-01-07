@@ -25,7 +25,7 @@ const About = () => {
             institute: data.institute,
             address: data.address,
         };
-        fetch(`https://asocial-media-server.onrender.com/user/${user?.email}`, {
+        fetch(`https://asocial-media-server.vercel.app/user/${user?.email}`, {
             method: "PATCH",
             headers: {
                 "content-type": "application/json",
@@ -42,7 +42,7 @@ const About = () => {
                 updateUser(userInformation);
                 //update existing post's username
                 fetch(
-                    `https://asocial-media-server.onrender.com/posts/${user?.email}`,
+                    `https://asocial-media-server.vercel.app/posts/${user?.email}`,
                     {
                         method: "PATCH",
                         headers: {
