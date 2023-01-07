@@ -75,9 +75,6 @@ const AllMediaCard = ({ singlePost }) => {
                             <button className="btn btn-outline btn-primary btn-sm">
                                 Like
                             </button>
-                            <span className="indicator-item badge badge-ghost">
-                                0
-                            </span>
                         </div>
                         <div className="w-full">
                             <form
@@ -107,24 +104,6 @@ const AllMediaCard = ({ singlePost }) => {
                                 </button>
                             </form>
                         </div>
-                        {
-                            //show comments
-                            userComments.length > 0 && (
-                                <div className="h-fit w-full rounded-lg p-3 bg-gray-800 bg-opacity-50 flex flex-col gap-3">
-                                    {userComments.map((userComment) => (
-                                        <div
-                                            key={userComment._id}
-                                            className="bg-gray-600 bg-opacity-50 p-3 rounded-r-lg"
-                                        >
-                                            <p className="font-bold">
-                                                {userComment.username}
-                                            </p>
-                                            <p>{userComment.comment}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            )
-                        }
                     </div>
                 ) : (
                     <div className="card-actions flex-col gap-6">
@@ -140,6 +119,36 @@ const AllMediaCard = ({ singlePost }) => {
                         </p>
                     </div>
                 )}
+                {
+                    //show comments
+                    userComments.length > 0 ? (
+                        <div className="mt-4">
+                            <p>
+                                0 Likes • {userComments.length}{" "}
+                                {userComments.length === 1
+                                    ? "comment"
+                                    : "comments"}
+                            </p>
+                            <div className="h-fit w-full rounded-lg p-3 mt-2 bg-gray-800 bg-opacity-50 flex flex-col gap-3">
+                                {userComments.map((userComment) => (
+                                    <div
+                                        key={userComment._id}
+                                        className="bg-gray-600 bg-opacity-50 p-3 rounded-r-lg"
+                                    >
+                                        <p className="font-bold">
+                                            {userComment.username}
+                                        </p>
+                                        <p>{userComment.comment}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="mt-4">
+                            <p>0 Likes • {userComments.length} comments</p>
+                        </div>
+                    )
+                }
             </div>
         </div>
     );
