@@ -6,6 +6,8 @@ import { Link } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthProvider";
 import LoadingScreen from "../LoadingScreen/LoadingScreen";
 
+import Comments from "./Comments/Comments";
+
 const AllMediaCard = ({ singlePost }) => {
     const { user } = useContext(AuthContext);
     const { _id, username, writings, photo } = singlePost;
@@ -57,6 +59,7 @@ const AllMediaCard = ({ singlePost }) => {
             }
         });
     };
+
     return (
         <div className="card h-fit bg-black shadow-xl">
             <figure>
@@ -131,15 +134,11 @@ const AllMediaCard = ({ singlePost }) => {
                             </p>
                             <div className="h-fit w-full rounded-lg p-3 mt-2 bg-gray-800 bg-opacity-50 flex flex-col gap-3">
                                 {userComments.map((userComment) => (
-                                    <div
+                                    <Comments
                                         key={userComment._id}
-                                        className="bg-gray-600 bg-opacity-50 p-3 rounded-r-lg"
-                                    >
-                                        <p className="font-bold">
-                                            {userComment.username}
-                                        </p>
-                                        <p>{userComment.comment}</p>
-                                    </div>
+                                        userComment={userComment}
+                                        refetch={refetch}
+                                    ></Comments>
                                 ))}
                             </div>
                         </div>

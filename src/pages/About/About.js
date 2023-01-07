@@ -45,9 +45,21 @@ const About = () => {
                     `https://asocial-media-server.vercel.app/posts/${user?.email}`,
                     {
                         method: "PATCH",
-                        headers: {
-                            "content-type": "application/json",
-                        },
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify({
+                            username: data.username,
+                        }),
+                    }
+                )
+                    .then((res) => res.json())
+                    .then((data) => console.log(data));
+
+                //update existing comment's username
+                fetch(
+                    `https://asocial-media-server.vercel.app/comments/${user?.email}`,
+                    {
+                        method: "PATCH",
+                        headers: { "content-type": "application/json" },
                         body: JSON.stringify({
                             username: data.username,
                         }),
