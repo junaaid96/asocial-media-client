@@ -13,6 +13,31 @@ const About = () => {
     const { userData, isLoading, refetch } = userInformation;
     const [newUserData, setNewUserData] = useState([]);
 
+    //existing user's data
+    const existingUserData = {
+        username: userData?.username,
+        institute: userData?.institute,
+        address: userData?.address,
+    };
+
+    //check both objects are equal or not
+    const isEqual = (obj1, obj2) => {
+        const keys1 = Object.keys(obj1);
+        const keys2 = Object.keys(obj2);
+
+        if (keys1.length !== keys2.length) {
+            return false;
+        }
+
+        for (let key of keys1) {
+            if (obj1[key] !== obj2[key]) {
+                return false;
+            }
+        }
+
+        return true;
+    };
+
     //update state with updated user information after closing modal
     useEffect(() => {
         setNewUserData(userData);
@@ -25,54 +50,69 @@ const About = () => {
             institute: data.institute,
             address: data.address,
         };
-        fetch(`https://asocial-media-server.vercel.app/user/${user?.email}`, {
-            method: "PATCH",
-            headers: {
-                "content-type": "application/json",
-            },
-            body: JSON.stringify(updatedData),
-        }).then((res) => {
-            if (res.status === 200) {
-                const userInformation = {
-                    displayName: data.username,
-                };
-                console.log(userInformation);
-                console.log(user);
-                //update user's display name
-                updateUser(userInformation);
-                //update existing post's username
-                fetch(
-                    `https://asocial-media-server.vercel.app/posts/${user?.email}`,
-                    {
-                        method: "PATCH",
-                        headers: { "content-type": "application/json" },
-                        body: JSON.stringify({
-                            username: data.username,
-                        }),
-                    }
-                )
-                    .then((res) => res.json())
-                    .then((data) => console.log(data));
+        if (
+            data.username !== existingUserData.username ||
+            !isEqual(updatedData, existingUserData)
+        ) {
+            fetch(
+                `https://asocial-media-server.vercel.app/user/${user?.email}`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        "content-type": "application/json",
+                    },
+                    body: JSON.stringify(updatedData),
+                }
+            ).then((res) => {
+                if (res.status === 200) {
+                    const userInformation = {
+                        displayName: data.username,
+                    };
+                    console.log(userInformation);
+                    console.log(user);
+                    //update user's display name
+                    updateUser(userInformation);
+                    //update existing post's username
+                    fetch(
+                        `https://asocial-media-server.vercel.app/posts/${user?.email}`,
+                        {
+                            method: "PATCH",
+                            headers: { "content-type": "application/json" },
+                            body: JSON.stringify({
+                                username: data.username,
+                            }),
+                        }
+                    )
+                        .then((res) => res.json())
+                        .then((data) => console.log(data));
 
-                //update existing comment's username
-                fetch(
-                    `https://asocial-media-server.vercel.app/comments/${user?.email}`,
-                    {
-                        method: "PATCH",
-                        headers: { "content-type": "application/json" },
-                        body: JSON.stringify({
-                            username: data.username,
-                        }),
-                    }
-                )
-                    .then((res) => res.json())
-                    .then((data) => console.log(data));
+                    //update existing comment's username
+                    fetch(
+                        `https://asocial-media-server.vercel.app/comments/${user?.email}`,
+                        {
+                            method: "PATCH",
+                            headers: { "content-type": "application/json" },
+                            body: JSON.stringify({
+                                username: data.username,
+                            }),
+                        }
+                    )
+                        .then((res) => res.json())
+                        .then((data) => console.log(data));
 
-                toast.success("Saved successfully");
-                refetch();
-                closeModal();
-            }
-        });
+                    toast.success("Saved successfully");
+                    refetch();
+                    closeModal();
+                } else if (res.status === 400) {
+                    toast.error("username already exists");
+                } else {
+                    toast.error("Something went wrong");
+                }
+            });
+        } else {
+            toast.error("nothing changes");
+            closeModal();
+        }
     };
 
     const openModal = () => {

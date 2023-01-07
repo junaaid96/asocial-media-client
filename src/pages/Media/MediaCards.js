@@ -2,9 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import React, { useContext, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import { BsThreeDotsVertical } from "react-icons/bs";
+import { BsThreeDots } from "react-icons/bs";
 import { AuthContext } from "../../contexts/AuthProvider";
 import LoadingScreen from "../LoadingScreen/LoadingScreen";
+import Comments from "./Comments/Comments";
 
 const MediaCards = ({ post, refetchPost }) => {
     const { user } = useContext(AuthContext);
@@ -18,6 +19,7 @@ const MediaCards = ({ post, refetchPost }) => {
         reset,
     } = useForm();
 
+    //get user's comments
     const {
         data: userComments = [],
         isLoading,
@@ -94,7 +96,7 @@ const MediaCards = ({ post, refetchPost }) => {
 
     return (
         <div className="card h-fit bg-black shadow-xl">
-            <figure>
+            <figure className="mt-12">
                 <img
                     src={photo}
                     alt="post"
@@ -105,13 +107,14 @@ const MediaCards = ({ post, refetchPost }) => {
                 <h2 className="card-title">{username}</h2>
                 <p className="mb-10">{writings}</p>
                 <div className="card-actions flex-col gap-6">
+                    {/* dropdown menu */}
                     <div className="dropdown dropdown-end absolute top-0 right-0">
                         <label
                             tabIndex={0}
                             className="btn btn-ghost"
                             onClick={toggleDropdown}
                         >
-                            <BsThreeDotsVertical size={25} />
+                            <BsThreeDots size={25} />
                         </label>
                         <ul
                             tabIndex={0}
@@ -130,9 +133,6 @@ const MediaCards = ({ post, refetchPost }) => {
                         <button className="btn btn-outline btn-primary btn-sm">
                             Like
                         </button>
-                        <span className="indicator-item badge badge-ghost">
-                            0
-                        </span>
                     </div>
                     <div className="w-full">
                         <form
@@ -162,25 +162,33 @@ const MediaCards = ({ post, refetchPost }) => {
                             </button>
                         </form>
                     </div>
-                    {
-                        //show comments
-                        userComments.length > 0 && (
-                            <div className="h-fit w-full rounded-lg p-3 bg-gray-800 bg-opacity-50 flex flex-col gap-3">
+                </div>
+                {
+                    //show comments
+                    userComments.length > 0 ? (
+                        <div className="mt-4">
+                            <p>
+                                0 Likes • {userComments.length}{" "}
+                                {userComments.length === 1
+                                    ? "comment"
+                                    : "comments"}
+                            </p>
+                            <div className="h-fit w-full rounded-lg p-3 mt-2 bg-gray-800 bg-opacity-50 flex flex-col gap-3">
                                 {userComments.map((userComment) => (
-                                    <div
+                                    <Comments
                                         key={userComment._id}
-                                        className="bg-gray-600 bg-opacity-50 p-3 rounded-r-lg"
-                                    >
-                                        <p className="font-bold">
-                                            {userComment.username}
-                                        </p>
-                                        <p>{userComment.comment}</p>
-                                    </div>
+                                        userComment={userComment}
+                                        refetch={refetch}
+                                    ></Comments>
                                 ))}
                             </div>
-                        )
-                    }
-                </div>
+                        </div>
+                    ) : (
+                        <div className="mt-4">
+                            <p>0 Likes • {userComments.length} comments</p>
+                        </div>
+                    )
+                }
             </div>
         </div>
     );

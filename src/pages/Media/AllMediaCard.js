@@ -18,6 +18,7 @@ const AllMediaCard = ({ singlePost }) => {
         reset,
     } = useForm();
 
+    //get user's comments
     const {
         data: userComments = [],
         isLoading,
@@ -62,7 +63,7 @@ const AllMediaCard = ({ singlePost }) => {
 
     return (
         <div className="card h-fit bg-black shadow-xl">
-            <figure>
+            <figure className="mt-12">
                 <img
                     src={photo}
                     alt="post"
