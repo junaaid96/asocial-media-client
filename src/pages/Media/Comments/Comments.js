@@ -25,7 +25,7 @@ const Comments = ({ userComment, refetch }) => {
                 <p className="font-bold">{username}</p>
                 <p>{comment}</p>
             </div>
-            {email === user.email && (
+            {email === user?.email && (
                 <button onClick={handleDeleteComment}>
                     <RxCrossCircled size={20} />
                 </button>
