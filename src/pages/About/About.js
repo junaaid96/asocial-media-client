@@ -38,6 +38,7 @@ const About = () => {
         return true;
     };
 
+    refetch();
     //update state with updated user information after closing modal
     useEffect(() => {
         setNewUserData(userData);

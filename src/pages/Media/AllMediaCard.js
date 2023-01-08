@@ -39,7 +39,7 @@ const AllMediaCard = ({ singlePost }) => {
         <LoadingScreen />;
     }
 
-    //add comment
+    //add a comment
     const handleAddComment = (data) => {
         const comment = {
             post_id: _id,
@@ -61,6 +61,24 @@ const AllMediaCard = ({ singlePost }) => {
         });
     };
 
+    // add a like
+    const handleAddLike = () => {
+        const like = {
+            post_id: _id,
+            username: user.displayName,
+            email: user.email,
+        };
+        fetch("http://localhost:5000/likes", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(like),
+        }).then((res) => {
+            if (res.status === 200) {
+                refetch();
+            }
+        });
+    };
+
     return (
         <div className="card h-fit bg-black shadow-xl">
             <figure className="mt-12">
@@ -76,7 +94,7 @@ const AllMediaCard = ({ singlePost }) => {
                 {user ? (
                     <div className="card-actions flex-col gap-6">
                         <div>
-                            <button className="btn btn-outline btn-primary btn-sm">
+                            <button className="btn btn-outline btn-primary btn-sm" onClick={handleAddLike}>
                                 Like
                             </button>
                         </div>
