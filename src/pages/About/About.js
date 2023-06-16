@@ -214,7 +214,7 @@ const About = () => {
                 </div>
             </div>
             <div className="divider">you are visiting from</div>
-            {/* <div className="text-center">{<VisitingInfo />}</div> */}
+            <div className="text-center">{<VisitingInfo />}</div>
         </>
     );
 };
