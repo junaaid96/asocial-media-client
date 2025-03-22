@@ -4,7 +4,7 @@ import UserModal from "./UserModal";
 import LoadingScreen from "../LoadingScreen/LoadingScreen";
 import { UserDataContext } from "../../contexts/UserData";
 import { toast } from "react-hot-toast";
-// import VisitingInfo from "../VisitingInfo/VisitingInfo";
+import VisitingInfo from "../VisitingInfo/VisitingInfo";
 
 const About = () => {
     const { user, updateUser, logOut } = useContext(AuthContext);
@@ -205,7 +205,7 @@ const About = () => {
                 </div>
             </div>
             <div className="divider">you are visiting from</div>
-            {/* <div className="text-center">{<VisitingInfo />}</div> */}
+            <div className="text-center">{<VisitingInfo />}</div>
         </>
     );
 };
