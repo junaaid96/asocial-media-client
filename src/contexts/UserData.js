@@ -6,7 +6,7 @@ export const UserDataContext = createContext();
 
 const UserData = ({ children }) => {
     const { user, loading } = useContext(AuthContext);
-    
+
     const {
         data: userData = [],
         isLoading: isUserDataLoading,
@@ -15,7 +15,7 @@ const UserData = ({ children }) => {
         queryKey: ["userData", user?.email],
         queryFn: async () => {
             const res = await fetch(
-                `http://localhost:5000/user/${user?.email}`
+                `https://asocial-media-server.vercel.app/user/${user?.email}`
             );
             const data = await res.json();
             return data;

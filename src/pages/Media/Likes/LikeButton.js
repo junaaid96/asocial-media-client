@@ -12,7 +12,9 @@ const LikeButton = ({ postId, user, refetch }) => {
     useEffect(() => {
         if (user) {
             setLoading(true);
-            fetch(`http://localhost:5000/likes/${postId}/${user.email}`)
+            fetch(
+                `https://asocial-media-server.vercel.app/likes/${postId}/${user.email}`
+            )
                 .then((res) => res.json())
                 .then((data) => {
                     if (data.liked) {
@@ -33,7 +35,7 @@ const LikeButton = ({ postId, user, refetch }) => {
 
     // Get the total likes count for this post
     useEffect(() => {
-        fetch(`http://localhost:5000/likes/count/${postId}`)
+        fetch(`https://asocial-media-server.vercel.app/likes/count/${postId}`)
             .then((res) => res.json())
             .then((data) => {
                 if (data.count !== undefined) {
@@ -51,7 +53,7 @@ const LikeButton = ({ postId, user, refetch }) => {
 
         if (liked) {
             // Unlike the post
-            fetch(`http://localhost:5000/like/${likeId}`, {
+            fetch(`https://asocial-media-server.vercel.app/like/${likeId}`, {
                 method: "DELETE",
             })
                 .then((res) => res.json())
@@ -70,7 +72,7 @@ const LikeButton = ({ postId, user, refetch }) => {
                 email: user.email,
             };
 
-            fetch("http://localhost:5000/likes", {
+            fetch("https://asocial-media-server.vercel.app/likes", {
                 method: "POST",
                 headers: {
                     "content-type": "application/json",
@@ -83,7 +85,7 @@ const LikeButton = ({ postId, user, refetch }) => {
                         setLiked(true);
                         // Get the new like ID
                         fetch(
-                            `http://localhost:5000/likes/${postId}/${user.email}`
+                            `https://asocial-media-server.vercel.app/likes/${postId}/${user.email}`
                         )
                             .then((res) => res.json())
                             .then((likeData) => {

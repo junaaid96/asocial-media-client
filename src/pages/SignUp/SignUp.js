@@ -24,88 +24,88 @@ const SignUp = () => {
             setLoading(true);
         }
         // check if the username is already taken
-        fetch(`http://localhost:5000/user/username/${data.username}`).then(
-            (res) => {
-                console.log(res);
-                if (res.status === 200) {
-                    toast.error("Username is already taken");
-                    setLoading(false);
-                } else {
-                    //upload user's photo
-                    const formData = new FormData();
-                    formData.append("image", data.photo[0]);
-                    const url = `https://api.imgbb.com/1/upload?key=${userImageHostingKey}`;
-                    fetch(url, {
-                        method: "POST",
-                        body: formData,
-                    })
-                        .then((res) => res.json())
-                        .then((imageData) => {
-                            //create a user with email and password
-                            createUser(data.email, data.password)
-                                .then((userCredential) => {
-                                    const user = userCredential.user;
-                                    console.log(user);
-                                    const userInformation = {
-                                        displayName: data.username,
-                                    };
-                                    //update user's display name
-                                    updateUser(userInformation);
-                                    //save user's data to database
-                                    saveUserData(
-                                        data.username,
-                                        data.email,
-                                        data.institute,
-                                        data.address,
-                                        imageData.data.display_url
-                                    );
-                                    navigate("/about");
-                                })
-                                .catch((err) => {
-                                    console.log(err);
-                                    setError(err.message);
-                                    setLoading(false);
-                                });
-                        });
-                    const saveUserData = (
+        fetch(
+            `https://asocial-media-server.vercel.app/user/username/${data.username}`
+        ).then((res) => {
+            console.log(res);
+            if (res.status === 200) {
+                toast.error("Username is already taken");
+                setLoading(false);
+            } else {
+                //upload user's photo
+                const formData = new FormData();
+                formData.append("image", data.photo[0]);
+                const url = `https://api.imgbb.com/1/upload?key=${userImageHostingKey}`;
+                fetch(url, {
+                    method: "POST",
+                    body: formData,
+                })
+                    .then((res) => res.json())
+                    .then((imageData) => {
+                        //create a user with email and password
+                        createUser(data.email, data.password)
+                            .then((userCredential) => {
+                                const user = userCredential.user;
+                                console.log(user);
+                                const userInformation = {
+                                    displayName: data.username,
+                                };
+                                //update user's display name
+                                updateUser(userInformation);
+                                //save user's data to database
+                                saveUserData(
+                                    data.username,
+                                    data.email,
+                                    data.institute,
+                                    data.address,
+                                    imageData.data.display_url
+                                );
+                                navigate("/about");
+                            })
+                            .catch((err) => {
+                                console.log(err);
+                                setError(err.message);
+                                setLoading(false);
+                            });
+                    });
+                const saveUserData = (
+                    username,
+                    email,
+                    institute,
+                    address,
+                    photo
+                ) => {
+                    const userData = {
                         username,
                         email,
                         institute,
                         address,
-                        photo
-                    ) => {
-                        const userData = {
-                            username,
-                            email,
-                            institute,
-                            address,
-                            photo,
-                        };
-                        //create a user
-                        fetch("http://localhost:5000/users", {
-                            method: "POST",
-                            headers: {
-                                "content-type": "application/json",
-                            },
-                            body: JSON.stringify(userData),
-                        }).then((res) => {
-                            if (res.status === 400) {
-                                res.json().then((data) => {
-                                    setLoading(false);
-                                    toast.error(data.message);
-                                });
-                            } else if (res.status === 200) {
-                                res.json().then((data) => {
-                                    reset();
-                                    setLoading(false);
-                                    toast.success(data.message);
-                                });
-                            }
-                        });
+                        photo,
                     };
-                }
+                    //create a user
+                    fetch("https://asocial-media-server.vercel.app/users", {
+                        method: "POST",
+                        headers: {
+                            "content-type": "application/json",
+                        },
+                        body: JSON.stringify(userData),
+                    }).then((res) => {
+                        if (res.status === 400) {
+                            res.json().then((data) => {
+                                setLoading(false);
+                                toast.error(data.message);
+                            });
+                        } else if (res.status === 200) {
+                            res.json().then((data) => {
+                                reset();
+                                setLoading(false);
+                                toast.success(data.message);
+                            });
+                        }
+                    });
+                };
             }
-        );
+        });
     };
 
     return (

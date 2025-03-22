@@ -7,7 +7,7 @@ import { AuthContext } from "../../contexts/AuthProvider";
 import LoadingScreen from "../LoadingScreen/LoadingScreen";
 import Comments from "./Comments/Comments";
 import LikeButton from "./Likes/LikeButton";
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from "date-fns";
 
 const MediaCards = ({ post, refetchPost }) => {
     const { user } = useContext(AuthContext);
@@ -15,12 +15,12 @@ const MediaCards = ({ post, refetchPost }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editedWritings, setEditedWritings] = useState(writings);
-    
+
     // Format the date
-    const formattedDate = createdAt ? 
-        formatDistanceToNow(new Date(createdAt), { addSuffix: true }) : 
-        "some time ago";
-    
+    const formattedDate = createdAt
+        ? formatDistanceToNow(new Date(createdAt), { addSuffix: true })
+        : "some time ago";
+
     const {
         register,
         handleSubmit,
@@ -36,7 +36,9 @@ const MediaCards = ({ post, refetchPost }) => {
     } = useQuery({
         queryKey: ["userComments", _id],
         queryFn: async () => {
-            const res = await fetch(`http://localhost:5000/comments/${_id}`);
+            const res = await fetch(
+                `https://asocial-media-server.vercel.app/comments/${_id}`
+            );
             const data = await res.json();
             return data;
         },
@@ -54,7 +56,7 @@ const MediaCards = ({ post, refetchPost }) => {
             email: user.email,
             comment: data.comment,
         };
-        fetch("http://localhost:5000/comments", {
+        fetch("https://asocial-media-server.vercel.app/comments", {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(comment),
@@ -77,7 +79,7 @@ const MediaCards = ({ post, refetchPost }) => {
     };
 
     const handleSaveEdit = () => {
-        fetch(`http://localhost:5000/post/${_id}`, {
+        fetch(`https://asocial-media-server.vercel.app/post/${_id}`, {
             method: "PATCH",
             headers: {
                 "content-type": "application/json",
@@ -98,7 +100,7 @@ const MediaCards = ({ post, refetchPost }) => {
     };
 
     const handleDelete = () => {
-        fetch(`http://localhost:5000/post/${_id}`, {
+        fetch(`https://asocial-media-server.vercel.app/post/${_id}`, {
             method: "DELETE",
         }).then((res) => {
             if (res.status === 200) {
@@ -154,7 +156,7 @@ const MediaCards = ({ post, refetchPost }) => {
                         </div>
                     </div>
                 </div>
-                
+
                 {isEditing ? (
                     <div className="mb-10">
                         <textarea
@@ -164,13 +166,13 @@ const MediaCards = ({ post, refetchPost }) => {
                             rows="4"
                         />
                         <div className="flex justify-end gap-2">
-                            <button 
+                            <button
                                 onClick={handleCancelEdit}
                                 className="btn btn-sm btn-outline"
                             >
                                 Cancel
                             </button>
-                            <button 
+                            <button
                                 onClick={handleSaveEdit}
                                 className="btn btn-sm btn-primary"
                             >
@@ -181,15 +183,20 @@ const MediaCards = ({ post, refetchPost }) => {
                 ) : (
                     <p className="mb-10">{writings}</p>
                 )}
-                
+
                 {/* Social interaction section */}
                 <div className="border-t border-gray-700 pt-4">
                     {/* Like and comment count */}
                     <div className="flex items-center gap-2 mb-4">
-                        <LikeButton postId={_id} user={user} refetch={refetchPost} />
+                        <LikeButton
+                            postId={_id}
+                            user={user}
+                            refetch={refetchPost}
+                        />
                         <span className="text-gray-400">•</span>
                         <span className="text-gray-400">
-                            {userComments.length} {userComments.length === 1 ? "comment" : "comments"}
+                            {userComments.length}{" "}
+                            {userComments.length === 1 ? "comment" : "comments"}
                         </span>
                     </div>
 
@@ -222,7 +229,7 @@ const MediaCards = ({ post, refetchPost }) => {
                             </button>
                         </form>
                     </div>
-                    
+
                     {/* Comments section */}
                     {userComments.length > 0 && (
                         <div className="mt-4">

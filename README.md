@@ -1,74 +1,68 @@
-# Live Site
+# aSocial Media Client
+
+A social media platform designed for introverts to connect and share their thoughts in a more comfortable environment.
+
+## Live Site
 https://asocial-media.web.app/
 
-# Getting Started with Create React App
+## Features
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+- User authentication with email/password and Google sign-in
+- User profile creation and management
+- Create, edit, and delete posts with images
+- Comment on posts with edit and delete functionality
+- Like/unlike posts
+- View all posts in a feed
+- Responsive design for all devices
 
-## Available Scripts
+## Tech Stack
 
-In the project directory, you can run:
+- React.js
+- React Router for navigation
+- Firebase Authentication
+- Context API for state management
+- React Query for data fetching
+- Tailwind CSS with DaisyUI for styling
+- React Hook Form for form handling
+- React Hot Toast for notifications
+- ImgBB for image hosting
 
-### `npm start`
+## Installation and Setup
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+1. Clone the repository
+```bash
+git clone https://github.com/yourusername/asocial-media-client.git
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+2. Install dependencies
+```bash
+cd asocial-media-client
+npm install
+```
 
-### `npm test`
+3. Create a `.env` file in the root directory with the following variables:
+```
+REACT_APP_apiKey=your_firebase_api_key
+REACT_APP_authDomain=your_firebase_auth_domain
+REACT_APP_projectId=your_firebase_project_id
+REACT_APP_storageBucket=your_firebase_storage_bucket
+REACT_APP_messagingSenderId=your_firebase_messaging_sender_id
+REACT_APP_appId=your_firebase_app_id
+REACT_APP_imgbb_api=your_imgbb_api_key
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+4. Start the development server
+```bash
+npm start
+```
 
-### `npm run build`
+## Project Structure
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- `src/contexts` - Context providers for authentication and user data
+- `src/layout` - Layout components for the application
+- `src/pages` - Page components
+- `src/routers` - Routing configuration and private route protection
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Backend Repository
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
-# asocial-media-client
+The backend server for this application can be found at https://github.com/junaaid96/asocial-media-server

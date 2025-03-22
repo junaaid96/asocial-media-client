@@ -6,10 +6,16 @@ import { AuthContext } from "../../contexts/AuthProvider";
 
 const AllMedia = () => {
     const { user } = useContext(AuthContext);
-    const { data: allPosts = [], isLoading, refetch } = useQuery({
+    const {
+        data: allPosts = [],
+        isLoading,
+        refetch,
+    } = useQuery({
         queryKey: ["allPosts"],
         queryFn: async () => {
-            const res = await fetch("http://localhost:5000/posts");
+            const res = await fetch(
+                "https://asocial-media-server.vercel.app/posts"
+            );
             const data = await res.json();
             return data;
         },
