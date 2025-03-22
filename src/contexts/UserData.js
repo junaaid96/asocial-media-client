@@ -5,21 +5,26 @@ import { AuthContext } from "./AuthProvider";
 export const UserDataContext = createContext();
 
 const UserData = ({ children }) => {
-    const { user } = useContext(AuthContext);
+    const { user, loading } = useContext(AuthContext);
+    
     const {
         data: userData = [],
-        isLoading,
+        isLoading: isUserDataLoading,
         refetch,
     } = useQuery({
         queryKey: ["userData", user?.email],
         queryFn: async () => {
             const res = await fetch(
-                `https://asocial-media-server.vercel.app/user/${user?.email}`
+                `http://localhost:5000/user/${user?.email}`
             );
             const data = await res.json();
             return data;
         },
+        enabled: !loading && !!user?.email,
     });
+
+    // Combined loading state
+    const isLoading = loading || isUserDataLoading;
 
     const userInformation = {
         userData,

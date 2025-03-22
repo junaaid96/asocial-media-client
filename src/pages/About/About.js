@@ -55,16 +55,13 @@ const About = () => {
             data.username !== existingUserData.username ||
             !isEqual(updatedData, existingUserData)
         ) {
-            fetch(
-                `https://asocial-media-server.vercel.app/user/${user?.email}`,
-                {
-                    method: "PATCH",
-                    headers: {
-                        "content-type": "application/json",
-                    },
-                    body: JSON.stringify(updatedData),
-                }
-            ).then((res) => {
+            fetch(`http://localhost:5000/user/${user?.email}`, {
+                method: "PATCH",
+                headers: {
+                    "content-type": "application/json",
+                },
+                body: JSON.stringify(updatedData),
+            }).then((res) => {
                 if (res.status === 200) {
                     const userInformation = {
                         displayName: data.username,
@@ -74,30 +71,24 @@ const About = () => {
                     //update user's display name
                     updateUser(userInformation);
                     //update existing post's username
-                    fetch(
-                        `https://asocial-media-server.vercel.app/posts/${user?.email}`,
-                        {
-                            method: "PATCH",
-                            headers: { "content-type": "application/json" },
-                            body: JSON.stringify({
-                                username: data.username,
-                            }),
-                        }
-                    )
+                    fetch(`http://localhost:5000/posts/${user?.email}`, {
+                        method: "PATCH",
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify({
+                            username: data.username,
+                        }),
+                    })
                         .then((res) => res.json())
                         .then((data) => console.log(data));
 
                     //update existing comment's username
-                    fetch(
-                        `https://asocial-media-server.vercel.app/comments/${user?.email}`,
-                        {
-                            method: "PATCH",
-                            headers: { "content-type": "application/json" },
-                            body: JSON.stringify({
-                                username: data.username,
-                            }),
-                        }
-                    )
+                    fetch(`http://localhost:5000/comments/${user?.email}`, {
+                        method: "PATCH",
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify({
+                            username: data.username,
+                        }),
+                    })
                         .then((res) => res.json())
                         .then((data) => console.log(data));
 

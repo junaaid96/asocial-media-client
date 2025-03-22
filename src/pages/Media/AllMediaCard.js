@@ -1,16 +1,28 @@
 import { useQuery } from "@tanstack/react-query";
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
+import { BsThreeDots } from "react-icons/bs";
 import { AuthContext } from "../../contexts/AuthProvider";
 import LoadingScreen from "../LoadingScreen/LoadingScreen";
+import { formatDistanceToNow } from 'date-fns';
 
 import Comments from "./Comments/Comments";
+import LikeButton from "./Likes/LikeButton";
 
-const AllMediaCard = ({ singlePost }) => {
+const AllMediaCard = ({ singlePost, refetch }) => {
     const { user } = useContext(AuthContext);
-    const { _id, username, writings, photo } = singlePost;
+    const { _id, username, email, writings, photo, createdAt, updatedAt } = singlePost;
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedWritings, setEditedWritings] = useState(writings);
+    const [isOpen, setIsOpen] = useState(false);
+    
+    // Format the date
+    const formattedDate = createdAt ? 
+        formatDistanceToNow(new Date(createdAt), { addSuffix: true }) : 
+        "some time ago";
+    
     const {
         register,
         handleSubmit,
@@ -22,15 +34,12 @@ const AllMediaCard = ({ singlePost }) => {
     const {
         data: userComments = [],
         isLoading,
-        refetch,
+        refetch: refetchComments,
     } = useQuery({
         queryKey: ["userComments", _id],
         queryFn: async () => {
-            const res = await fetch(
-                `https://asocial-media-server.vercel.app/comments/${_id}`
-            );
+            const res = await fetch(`http://localhost:5000/comments/${_id}`);
             const data = await res.json();
-            console.log(data);
             return data;
         },
     });
@@ -48,35 +57,47 @@ const AllMediaCard = ({ singlePost }) => {
             comment: data.comment,
         };
         console.log(comment);
-        fetch("https://asocial-media-server.vercel.app/comments", {
+        fetch("http://localhost:5000/comments", {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(comment),
         }).then((res) => {
             if (res.status === 200) {
-                refetch();
+                refetchComments();
                 reset();
                 toast.success("Comment added successfully!");
             }
         });
     };
 
-    // add a like
-    const handleAddLike = () => {
-        const like = {
-            post_id: _id,
-            username: user.displayName,
-            email: user.email,
-        };
-        fetch("http://localhost:5000/likes", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify(like),
+    const toggleDropdown = () => {
+        setIsOpen(!isOpen);
+    };
+
+    const handleEdit = () => {
+        setIsEditing(true);
+        setIsOpen(false);
+    };
+
+    const handleSaveEdit = () => {
+        fetch(`http://localhost:5000/post/${_id}`, {
+            method: "PATCH",
+            headers: {
+                "content-type": "application/json",
+            },
+            body: JSON.stringify({ writings: editedWritings }),
         }).then((res) => {
             if (res.status === 200) {
+                setIsEditing(false);
                 refetch();
+                toast.success("Post updated successfully!");
             }
         });
+    };
+
+    const handleCancelEdit = () => {
+        setIsEditing(false);
+        setEditedWritings(writings);
     };
 
     return (
@@ -89,84 +110,139 @@ const AllMediaCard = ({ singlePost }) => {
                 />
             </figure>
             <div className="card-body">
-                <h2 className="card-title">{username}</h2>
-                <p className="mb-10">{writings}</p>
-                {user ? (
-                    <div className="card-actions flex-col gap-6">
-                        <div>
-                            <button className="btn btn-outline btn-primary btn-sm" onClick={handleAddLike}>
-                                Like
-                            </button>
-                        </div>
-                        <div className="w-full">
-                            <form
-                                className="flex gap-1 items-center"
-                                onSubmit={handleSubmit(handleAddComment)}
-                            >
-                                <div className="w-full">
-                                    <input
-                                        {...register("comment", {
-                                            required: "Comment is Required",
-                                        })}
-                                        type="text"
-                                        placeholder="add a comment"
-                                        className="input input-bordered w-full"
-                                    />
-                                    {errors.comment && (
-                                        <p className="text-red-500">
-                                            {errors.comment.message}
-                                        </p>
-                                    )}
-                                </div>
-                                <button
-                                    type="submit"
-                                    className="btn btn-primary btn-sm"
+                <div className="flex justify-between items-center">
+                    <h2 className="card-title">{username}</h2>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-400">
+                            {formattedDate}
+                            {updatedAt && " (edited)"}
+                        </span>
+                        {user?.email === email && (
+                            <div className="dropdown dropdown-end">
+                                <label
+                                    tabIndex={0}
+                                    className="btn btn-ghost btn-circle"
+                                    onClick={toggleDropdown}
                                 >
-                                    Post
-                                </button>
-                            </form>
+                                    <BsThreeDots />
+                                </label>
+                                {isOpen && (
+                                    <ul
+                                        tabIndex={0}
+                                        className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52"
+                                    >
+                                        <li>
+                                            <button onClick={handleEdit}>
+                                                Edit
+                                            </button>
+                                        </li>
+                                    </ul>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+                
+                {isEditing ? (
+                    <div className="mb-10">
+                        <textarea
+                            value={editedWritings}
+                            onChange={(e) => setEditedWritings(e.target.value)}
+                            className="w-full p-2 bg-gray-700 text-white rounded mb-2"
+                            rows="4"
+                        />
+                        <div className="flex justify-end gap-2">
+                            <button 
+                                onClick={handleCancelEdit}
+                                className="btn btn-sm btn-outline"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleSaveEdit}
+                                className="btn btn-sm btn-primary"
+                            >
+                                Save
+                            </button>
                         </div>
                     </div>
                 ) : (
-                    <div className="card-actions flex-col gap-6">
-                        <p>
-                            Please{" "}
-                            <Link
-                                to="/login"
-                                className="font-bold text-primary"
-                            >
-                                login
-                            </Link>{" "}
-                            to add like and comment.
-                        </p>
-                    </div>
+                    <p className="mb-10">{writings}</p>
                 )}
-                {
-                    //show comments
-                    userComments.length > 0 ? (
-                        <div className="mt-4">
+                
+                {/* Social interaction section */}
+                <div className="border-t border-gray-700 pt-4">
+                    {/* Like and comment count */}
+                    <div className="flex items-center gap-2 mb-4">
+                        <LikeButton postId={_id} user={user} refetch={refetch} />
+                        <span className="text-gray-400">•</span>
+                        <span className="text-gray-400">
+                            {userComments.length} {userComments.length === 1 ? "comment" : "comments"}
+                        </span>
+                    </div>
+
+                    {user ? (
+                        <div className="space-y-4">
+                            {/* Comment form */}
+                            <div className="w-full">
+                                <form
+                                    className="flex gap-1 items-center"
+                                    onSubmit={handleSubmit(handleAddComment)}
+                                >
+                                    <div className="w-full">
+                                        <input
+                                            {...register("comment", {
+                                                required: "Comment is Required",
+                                            })}
+                                            type="text"
+                                            placeholder="Add a comment..."
+                                            className="input input-bordered w-full bg-gray-800 text-white"
+                                        />
+                                        {errors.comment && (
+                                            <p className="text-red-500">
+                                                {errors.comment.message}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        className="btn btn-primary btn-sm"
+                                    >
+                                        Post
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="card-actions flex-col gap-6">
                             <p>
-                                0 Likes • {userComments.length}{" "}
-                                {userComments.length === 1
-                                    ? "comment"
-                                    : "comments"}
+                                Please{" "}
+                                <Link
+                                    to="/login"
+                                    className="font-bold text-primary"
+                                >
+                                    login
+                                </Link>{" "}
+                                to add like and comment.
                             </p>
+                        </div>
+                    )}
+                    
+                    {/* Comments section */}
+                    {userComments.length > 0 && (
+                        <div className="mt-4">
                             <div className="h-fit w-full rounded-lg p-3 mt-2 bg-gray-800 bg-opacity-50 flex flex-col gap-3">
                                 {userComments.map((userComment) => (
                                     <Comments
                                         key={userComment._id}
                                         userComment={userComment}
-                                        refetch={refetch}
+                                        refetch={refetchComments}
                                     ></Comments>
                                 ))}
                             </div>
                         </div>
-                    ) : (
-                        <div className="mt-4">
-                            <p>0 Likes • {userComments.length} comments</p>
-                        </div>
-                    )
-                }
+                    )}
+                </div>
             </div>
         </div>
     );

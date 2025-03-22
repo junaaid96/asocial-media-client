@@ -1,15 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import React from "react";
+import React, { useContext } from "react";
 import AllMediaCard from "./AllMediaCard";
 import LoadingScreen from "../LoadingScreen/LoadingScreen";
+import { AuthContext } from "../../contexts/AuthProvider";
 
 const AllMedia = () => {
-    const { data: allPosts = [], isLoading } = useQuery({
+    const { user } = useContext(AuthContext);
+    const { data: allPosts = [], isLoading, refetch } = useQuery({
         queryKey: ["allPosts"],
         queryFn: async () => {
-            const res = await fetch(
-                "https://asocial-media-server.vercel.app/posts"
-            );
+            const res = await fetch("http://localhost:5000/posts");
             const data = await res.json();
             return data;
         },
@@ -23,6 +23,8 @@ const AllMedia = () => {
                     <AllMediaCard
                         key={singlePost._id}
                         singlePost={singlePost}
+                        user={user}
+                        refetch={refetch}
                     ></AllMediaCard>
                 ))}
             </div>
