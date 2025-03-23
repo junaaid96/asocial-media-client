@@ -18,7 +18,7 @@ const AllMedia = ({ onPageChange }) => {
         queryFn: async () => {
             // cache busting parameter to prevent browser caching
             const res = await fetch(
-                `http://localhost:5000/posts?page=${currentPage}&limit=${postsPerPage}&t=${new Date().getTime()}`
+                `https://asocial-media-server.vercel.app/posts?page=${currentPage}&limit=${postsPerPage}&t=${new Date().getTime()}`
             );
             if (!res.ok) {
                 throw new Error("Network response was not ok");
@@ -50,9 +50,12 @@ const AllMedia = ({ onPageChange }) => {
         }
     };
 
+    if (isLoading) {
+        <LoadingScreen />;
+    }
+
     return (
         <>
-            {isLoading && <LoadingScreen />}
             <div className="flex flex-col gap-6 m-6 lg:w-1/2 lg:m-auto lg:mb-6">
                 <h2 className="text-xl font-bold mb-4 border-b pb-2">
                     Regular Posts
