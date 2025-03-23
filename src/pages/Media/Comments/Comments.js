@@ -1,7 +1,7 @@
 import React, { useContext, useState } from "react";
 import { toast } from "react-hot-toast";
-import { RxCrossCircled } from "react-icons/rx";
-import { FaEdit, FaSave } from "react-icons/fa";
+import { RxCross1 } from "react-icons/rx";
+import { FaEdit } from "react-icons/fa";
 import { AuthContext } from "../../../contexts/AuthProvider";
 import { formatDistanceToNow } from "date-fns";
 
@@ -18,14 +18,16 @@ const Comments = ({ userComment, refetch }) => {
 
     // Delete comment
     const handleDeleteComment = () => {
-        fetch(`https://asocial-media-server.vercel.app/comment/${_id}`, {
-            method: "DELETE",
-        }).then((res) => {
-            if (res.status === 200) {
-                refetch();
-                toast.success("Comment deleted successfully!");
-            }
-        });
+        if (window.confirm("Are you sure you want to delete this comment?")) {
+            fetch(`https://asocial-media-server.vercel.app/comment/${_id}`, {
+                method: "DELETE",
+            }).then((res) => {
+                if (res.status === 200) {
+                    refetch();
+                    toast.success("Comment deleted successfully!");
+                }
+            });
+        }
     };
 
     // Edit comment
@@ -56,14 +58,6 @@ const Comments = ({ userComment, refetch }) => {
                 <div className="w-full">
                     <div className="flex items-center gap-2">
                         <p className="font-bold">{username}</p>
-                        <span className="text-xs text-gray-400">
-                            {formattedDate}
-                        </span>
-                        {updatedAt && (
-                            <span className="text-xs text-gray-400">
-                                (edited)
-                            </span>
-                        )}
                     </div>
 
                     {isEditing ? (
@@ -76,34 +70,48 @@ const Comments = ({ userComment, refetch }) => {
                                 className="w-full p-2 bg-gray-700 text-white rounded"
                                 rows="2"
                             />
+                            <div className="flex justify-end gap-2 mt-2">
+                                <button
+                                    onClick={() => {
+                                        setIsEditing(false);
+                                        setEditedComment(comment);
+                                    }}
+                                    className="text-red-400 hover:text-gray-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSaveComment}
+                                    className="text-green-400"
+                                >
+                                    Save
+                                </button>
+                            </div>
                         </div>
                     ) : (
                         <p>{comment}</p>
                     )}
+                    <div className="flex items-center gap-2 mt-3">
+                        <span className="text-sm text-gray-400">
+                            {formattedDate}
+                            {updatedAt && " (edited)"}
+                        </span>
+                    </div>
                 </div>
 
                 {email === user?.email && (
                     <div className="flex gap-2">
-                        {isEditing ? (
-                            <button
-                                onClick={handleSaveComment}
-                                className="text-green-400"
-                            >
-                                <FaSave size={16} />
-                            </button>
-                        ) : (
-                            <button
-                                onClick={handleEditComment}
-                                className="text-blue-400"
-                            >
-                                <FaEdit size={16} />
-                            </button>
-                        )}
+                        <button
+                            onClick={handleEditComment}
+                            className="text-blue-400"
+                        >
+                            <FaEdit size={16} />
+                        </button>
                         <button
                             onClick={handleDeleteComment}
                             className="text-red-400"
                         >
-                            <RxCrossCircled size={16} />
+                            <RxCross1 size={16} />
                         </button>
                     </div>
                 )}

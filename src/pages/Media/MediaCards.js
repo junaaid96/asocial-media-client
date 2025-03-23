@@ -100,15 +100,17 @@ const MediaCards = ({ post, refetchPost }) => {
     };
 
     const handleDelete = () => {
-        fetch(`https://asocial-media-server.vercel.app/post/${_id}`, {
-            method: "DELETE",
-        }).then((res) => {
-            if (res.status === 200) {
-                refetchPost();
-                setIsOpen(false);
-                toast.success("Post deleted successfully!");
-            }
-        });
+        if (window.confirm("Are you sure you want to delete this post?")) {
+            fetch(`https://asocial-media-server.vercel.app/post/${_id}`, {
+                method: "DELETE",
+            }).then((res) => {
+                if (res.status === 200) {
+                    refetchPost();
+                    setIsOpen(false);
+                    toast.success("Post deleted successfully!");
+                }
+            });
+        }
     };
 
     return (

@@ -103,6 +103,23 @@ const AllMediaCard = ({ singlePost, refetch }) => {
         setEditedWritings(writings);
     };
 
+    // Add a delete handler
+    const handleDelete = () => {
+        if (window.confirm("Are you sure you want to delete this post?")) {
+            fetch(`https://asocial-media-server.vercel.app/post/${_id}`, {
+                method: "DELETE",
+            }).then((res) => {
+                if (res.status === 200) {
+                    refetch();
+                    setIsOpen(false);
+                    toast.success("Post deleted successfully!");
+                }
+            });
+        }
+    };
+
+    // Add delete option to dropdown menu
+    // This should be added to the dropdown menu in the component
     return (
         <div className="card h-fit bg-black shadow-xl">
             <figure className="mt-12">
@@ -137,6 +154,11 @@ const AllMediaCard = ({ singlePost, refetch }) => {
                                         <li>
                                             <button onClick={handleEdit}>
                                                 Edit
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button onClick={handleDelete}>
+                                                Delete
                                             </button>
                                         </li>
                                     </ul>
