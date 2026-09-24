@@ -1,17 +1,135 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --bg: #f6f1e7;
+  --surface: #fffcf6;
+  --surface-2: #efe8da;
+  --ink: #1f1c17;
+  --ink-soft: #3d3831;
+  --muted: #7a7266;
+  --line: #e4dccc;
+  --accent: #3f6b58;
+  --accent-strong: #2f5545;
+  --accent-soft: #dfe9e1;
+  --on-accent: #fbf8f2;
+  --clay: #b8664a;
+  --clay-soft: #f3e1d8;
+  --shadow: 28 24 18;
+  color-scheme: light;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+.dark {
+  --bg: #131614;
+  --surface: #1a1e1b;
+  --surface-2: #232823;
+  --ink: #ece7dc;
+  --ink-soft: #cfc9bd;
+  --muted: #979184;
+  --line: #2d332e;
+  --accent: #8dbba1;
+  --accent-strong: #a9d0b9;
+  --accent-soft: #223329;
+  --on-accent: #0f1a14;
+  --clay: #e0977b;
+  --clay-soft: #3a2821;
+  --shadow: 0 0 0;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Fraunces", ui-serif, Georgia, "Times New Roman", serif;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-clay: var(--clay);
+  --color-clay-soft: var(--clay-soft);
+}
+
+@theme {
+  --animate-fade-in: fade-in 0.35s ease-out both;
+  --animate-rise: rise 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-bg font-sans text-ink antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--accent) 30%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  dialog::backdrop {
+    background: rgb(15 14 12 / 0.45);
+    backdrop-filter: blur(3px);
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-surface;
+    box-shadow: 0 1px 2px rgb(var(--shadow) / 0.04), 0 8px 24px -16px rgb(var(--shadow) / 0.18);
+  }
+  .field {
+    @apply w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[15px] text-ink placeholder:text-muted/80 transition-colors outline-none focus:border-accent focus:ring-4 focus:ring-accent/15;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink-soft;
+  }
+  .paper {
+    background-color: var(--surface);
+    background-attachment: local;
+    background-position: 0 7px;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 31px,
+      color-mix(in oklab, var(--line) 70%, transparent) 31px,
+      color-mix(in oklab, var(--line) 70%, transparent) 32px
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
