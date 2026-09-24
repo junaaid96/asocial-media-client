@@ -3,7 +3,7 @@
 **A calm corner of the internet, made for introverts.** Write slowly, react gently, and send letters that take
 their time.
 
-API: https://github.com/junaaid96/asocial-media-server
+**Live:** https://asocial-media-codejborg.vercel.app · API: https://github.com/junaaid96/asocial-media-server
 
 ## Features
 
