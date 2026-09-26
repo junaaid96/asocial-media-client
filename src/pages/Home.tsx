@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { BatteryMedium, EyeOff, Feather, HeartHandshake, Leaf, Sparkles } from "lucide-react";
+import { BatteryMedium, EyeOff, Feather, HeartHandshake, Leaf, Sparkles, Users } from "lucide-react";
 import { Link, useSearchParams } from "react-router";
 import { Composer } from "../components/Composer";
 import { FeedList, defaultEmpty } from "../components/FeedList";
@@ -9,7 +9,7 @@ import { MoodChip } from "../components/ui/misc";
 import { useAuth } from "../lib/auth";
 import { greeting } from "../lib/format";
 import { MOOD_KEYS, MOODS } from "../lib/meta";
-import { useFeed } from "../lib/queries";
+import { useFeed, useStats } from "../lib/queries";
 import type { Mood } from "../lib/types";
 
 type Feed = "latest" | "following" | "prompt";
@@ -51,6 +51,7 @@ export function Home() {
             {greeting()}, {me.displayName.split(" ")[0]}
           </h1>
           <p className="mt-1 text-[15px] text-muted">Write slowly. Read gently. Leave whenever you like.</p>
+          <MemberCount className="mt-2" />
         </div>
       ) : (
         <Landing />
@@ -130,6 +131,7 @@ function Landing() {
         <p className="relative mt-4 max-w-lg text-[17px] leading-relaxed text-ink-soft">
           Share your thoughts without the noise. No follower counts on display, no infinite scroll, no pressure to reply right away.
         </p>
+        <MemberCount className="relative mt-5" />
         <div className="relative mt-7 flex flex-wrap gap-3">
           <Link to="/join">
             <Button size="lg">Find your quiet corner</Button>
@@ -152,5 +154,19 @@ function Landing() {
       </ul>
       <h2 className="px-1 pt-2 font-serif text-2xl font-semibold">A glimpse inside</h2>
     </section>
+  );
+}
+
+function MemberCount({ className }: { className?: string }) {
+  const { data } = useStats();
+  if (!data) return null;
+  return (
+    <p className={clsx("flex items-center gap-2 text-sm text-muted", className)}>
+      <Users className="size-4 text-accent" aria-hidden />
+      <span>
+        <strong className="font-semibold text-ink">{data.users.toLocaleString()}</strong>{" "}
+        {data.users === 1 ? "quiet person has" : "quiet people have"} found their corner
+      </span>
+    </p>
   );
 }

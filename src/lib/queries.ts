@@ -52,6 +52,10 @@ export function usePrompt() {
   return useQuery({ queryKey: ["prompt"], queryFn: () => api<DailyPrompt>("/prompt"), staleTime: 10 * 60_000 });
 }
 
+export function useStats() {
+  return useQuery({ queryKey: ["stats"], queryFn: () => api<{ users: number }>("/stats"), staleTime: 5 * 60_000 });
+}
+
 export function useProfile(username: string) {
   return useQuery({ queryKey: keys.profile(username), queryFn: () => api<ProfileResponse>(`/users/${username}`) });
 }
