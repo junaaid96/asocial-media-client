@@ -8,6 +8,21 @@ export interface MessageCache {
   hasMore: boolean;
 }
 
+// Latest read receipt per conversation. A receipt can arrive before our own send has been confirmed,
+// so it's remembered and applied to messages as they're merged in.
+const readMarks = new Map<string, { reader: string; readAt: string }>();
+
+export function markRead(conversationId: string, reader: string, readAt: string) {
+  const current = readMarks.get(conversationId);
+  if (!current || current.readAt < readAt) readMarks.set(conversationId, { reader, readAt });
+}
+
+function applyReadMark(message: Message): Message {
+  const mark = readMarks.get(message.conversationId);
+  if (!mark || message.readAt || message.pending || message.sender === mark.reader || message.createdAt > mark.readAt) return message;
+  return { ...message, readAt: mark.readAt };
+}
+
 const byTime = (a: Message, b: Message) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id);
 
 /** Merge messages into a conversation's cache, de-duplicating by id and by clientId (optimistic sends). */
@@ -18,7 +33,7 @@ export function mergeMessages(cache: MessageCache | undefined, incoming: Message
     if (index >= 0) items[index] = { ...message, pending: undefined };
     else items.push(message);
   }
-  const confirmed = items.filter((m) => !m.pending).sort(byTime);
+  const confirmed = items.filter((m) => !m.pending).map(applyReadMark).sort(byTime);
   const pending = items.filter((m) => m.pending);
   return { items: [...confirmed, ...pending], hasMore: hasMore ?? cache?.hasMore ?? false };
 }

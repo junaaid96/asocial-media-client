@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { API_URL, tokenStore } from "./api";
 import { useAuth } from "./auth";
-import { type MessageCache, receiveMessage } from "./chat";
+import { type MessageCache, markRead, mergeMessages, receiveMessage } from "./chat";
 import { keys } from "./queries";
 import type { Message } from "./types";
 
@@ -65,11 +65,8 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           }
           break;
         case "read":
-          queryClient.setQueryData<MessageCache>(keys.messages(event.conversationId), (cache) =>
-            cache
-              ? { ...cache, items: cache.items.map((m) => (m.sender === username && !m.readAt && !m.pending ? { ...m, readAt: event.readAt } : m)) }
-              : cache,
-          );
+          markRead(event.conversationId, event.readerUsername, event.readAt);
+          queryClient.setQueryData<MessageCache>(keys.messages(event.conversationId), (cache) => (cache ? mergeMessages(cache, []) : cache));
           break;
         case "typing":
           setTyping((t) => ({ ...t, [event.conversationId]: event.typing ? Date.now() + TYPING_TTL : 0 }));
