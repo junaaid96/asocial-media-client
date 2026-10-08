@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
-import { Camera, LogOut, Monitor, Moon, Sun } from "lucide-react";
+import { Camera, Hourglass, LogOut, Monitor, Moon, ShieldCheck, Sun } from "lucide-react";
 import { type ReactNode, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { PageHeader } from "../components/AppShell";
 import { useSetBattery } from "../components/BatteryPicker";
@@ -16,10 +16,11 @@ import { uploadImage } from "../lib/image";
 import { BATTERY, BATTERY_KEYS } from "../lib/meta";
 import { type ThemeChoice, useTheme } from "../lib/theme";
 import type { LettersFrom, Me } from "../lib/types";
+import { type UsageDay, formatDuration, localDay, usageKey, useUsage } from "../lib/usage";
 
-function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
+function Section({ title, description, children, id }: { title: string; description?: string; children: ReactNode; id?: string }) {
   return (
-    <section className="card p-5 sm:p-6">
+    <section className="card scroll-mt-20 p-5 sm:p-6" id={id}>
       <h2 className="font-serif text-xl font-semibold">{title}</h2>
       {description ? <p className="mt-1 text-sm text-muted">{description}</p> : null}
       <div className="mt-5">{children}</div>
@@ -48,12 +49,20 @@ export function Settings() {
       <PageHeader title="Settings" subtitle="Make aSocial feel like your own quiet room." />
       <ProfileForm me={me} />
       <PresenceSettings me={me} />
+      <TimeSettings me={me} />
       <AppearanceSettings />
       <Section title="Account" description={`Signed in as ${me.email}`}>
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" onClick={signOut}>
             <LogOut className="size-4" /> Sign out
           </Button>
+          {me.role === "admin" ? (
+            <Link to="/admin">
+              <Button variant="secondary">
+                <ShieldCheck className="size-4" /> Moderation
+              </Button>
+            </Link>
+          ) : null}
           <DeleteAccount />
         </div>
       </Section>
@@ -219,8 +228,8 @@ function PresenceSettings({ me }: { me: Me }) {
         ))}
       </div>
 
-      <p className="label mt-6">Who can send you letters</p>
-      <div className="space-y-2" role="radiogroup" aria-label="Who can send you letters">
+      <p className="label mt-6">Who can send you letters and messages</p>
+      <div className="space-y-2" role="radiogroup" aria-label="Who can send you letters and messages">
         {LETTER_OPTIONS.map((option) => (
           <label key={option.value} className="flex cursor-pointer items-start gap-3 rounded-xl px-1 py-1.5">
             <input
@@ -326,5 +335,112 @@ function DeleteAccount() {
         </form>
       </Dialog>
     </>
+  );
+}
+
+const LIMITS = [null, 15, 30, 45, 60, 90, 120, 180] as const;
+
+function lastDays(days: UsageDay[], today: number) {
+  const map = new Map(days.map((d) => [d.day, d.seconds]));
+  const now = new Date();
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - i));
+    const key = localDay(date);
+    return {
+      key,
+      label: i === 6 ? "Today" : date.toLocaleDateString(undefined, { weekday: "short" }),
+      seconds: i === 6 ? Math.max(today, map.get(key) ?? 0) : (map.get(key) ?? 0),
+    };
+  });
+}
+
+function TimeSettings({ me }: { me: Me }) {
+  const queryClient = useQueryClient();
+  const update = useUpdateMe();
+  const usage = useUsage();
+  const week = lastDays(usage.days, usage.today);
+  const limit = me.dailyLimitMinutes;
+  const max = Math.max(limit ? limit * 60 : 0, ...week.map((d) => d.seconds), 60);
+  const average = week.reduce((sum, d) => sum + d.seconds, 0) / 7;
+
+  return (
+    <Section id="time" title="Time well spent" description="Time counts only while aSocial is open and you're active. Daily totals are saved to your account.">
+      <dl className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Today", value: usage.today },
+          { label: "This session", value: usage.session },
+          { label: "Daily average", value: average },
+        ].map((item) => (
+          <div key={item.label} className="rounded-2xl bg-surface-2 p-3">
+            <dt className="text-xs text-muted">{item.label}</dt>
+            <dd className="mt-0.5 font-serif text-xl font-semibold">{formatDuration(item.value)}</dd>
+          </div>
+        ))}
+      </dl>
+      {usage.sessionStartedAt ? (
+        <p className="mt-2 text-xs text-muted">
+          Session started at {new Date(usage.sessionStartedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}.
+        </p>
+      ) : null}
+
+      <figure className="mt-5">
+        <div className="relative flex h-28 items-end gap-2" aria-hidden>
+          {limit ? (
+            <div className="absolute inset-x-0 border-t border-dashed border-clay/60" style={{ bottom: `${((limit * 60) / max) * 100}%` }}>
+              <span className="absolute -top-4 right-0 text-[10px] text-clay">limit</span>
+            </div>
+          ) : null}
+          {week.map((d) => (
+            <div key={d.key} className="flex h-full flex-1 flex-col justify-end" title={`${d.label}: ${formatDuration(d.seconds)}`}>
+              <div
+                className={clsx("min-h-[3px] rounded-t-md", limit && d.seconds >= limit * 60 ? "bg-clay/70" : "bg-accent/70")}
+                style={{ height: `${(d.seconds / max) * 100}%` }}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="mt-1.5 flex gap-2 text-center text-[11px] text-muted" aria-hidden>
+          {week.map((d) => (
+            <span key={d.key} className="flex-1">
+              {d.label}
+            </span>
+          ))}
+        </div>
+        <figcaption className="sr-only">
+          Time spent over the last 7 days: {week.map((d) => `${d.label} ${formatDuration(d.seconds)}`).join(", ")}
+        </figcaption>
+      </figure>
+
+      <div className="mt-6 border-t border-line pt-5">
+        <label className="label flex items-center gap-1.5" htmlFor="daily-limit">
+          <Hourglass className="size-4 text-muted" aria-hidden /> Daily limit
+        </label>
+        <p className="mb-2 text-sm text-muted">We'll send one gentle reminder when you pass it. Nothing gets locked.</p>
+        <select
+          id="daily-limit"
+          value={limit ?? ""}
+          onChange={(e) => {
+            const dailyLimitMinutes = e.target.value ? Number(e.target.value) : null;
+            update.mutate(
+              { dailyLimitMinutes },
+              {
+                onSuccess: () => {
+                  void queryClient.invalidateQueries({ queryKey: usageKey });
+                  localStorage.removeItem("asocial.limitNudge");
+                  toast(dailyLimitMinutes ? `Daily limit set to ${formatDuration(dailyLimitMinutes * 60)}` : "Daily limit turned off");
+                },
+              },
+            );
+          }}
+          className="field w-auto pr-8"
+        >
+          {LIMITS.map((value) => (
+            <option key={value ?? "off"} value={value ?? ""}>
+              {value ? formatDuration(value * 60) : "No limit"}
+            </option>
+          ))}
+        </select>
+      </div>
+    </Section>
   );
 }

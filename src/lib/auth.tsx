@@ -3,6 +3,7 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useM
 import { toast } from "sonner";
 import { SESSION_EXPIRED, api, tokenStore } from "./api";
 import type { Me } from "./types";
+import { endUsageSession, startUsageSession } from "./usage";
 
 interface AuthValue {
   me: Me | null;
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(
     (nextToken: string, user: Me) => {
       tokenStore.set(nextToken);
+      startUsageSession();
       queryClient.clear();
       queryClient.setQueryData(["me"], user);
       setToken(nextToken);
@@ -37,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     tokenStore.set(null);
+    endUsageSession();
     setToken(null);
     queryClient.clear();
   }, [queryClient]);
