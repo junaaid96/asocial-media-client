@@ -8,6 +8,7 @@ import { type ThemeChoice, useTheme } from "../lib/theme";
 import { BatteryPicker } from "./BatteryPicker";
 import { BreatheDialog } from "./BreatheDialog";
 import { Composer } from "./Composer";
+import { CreditPill } from "./CreditPill";
 import { LetterComposer } from "./LetterComposer";
 import { KindredSpirits, PromptCard, Resonating, SearchBox } from "./Rail";
 import { Logo } from "./Logo";
@@ -65,6 +66,9 @@ export function AppShell() {
         <Sidebar />
         <main id="main" className="min-w-0 flex-1 px-3 pt-4 pb-28 sm:px-0 lg:max-w-2xl lg:pt-8 lg:pb-16">
           <Outlet />
+          <footer className="mt-10 flex justify-center border-t border-line pt-6 xl:hidden">
+            <CreditPill />
+          </footer>
         </main>
         <aside className="hidden w-80 shrink-0 space-y-4 pt-8 pb-10 xl:block">
           <div className="sticky top-8 space-y-4">
@@ -72,8 +76,9 @@ export function AppShell() {
             <PromptCard />
             {me ? <KindredSpirits /> : null}
             <Resonating />
-            <footer className="px-2 text-xs leading-relaxed text-muted">
-              aSocial is a quiet place. Be gentle, take breaks, and write like no one is counting — because no one is.
+            <footer className="space-y-3 px-2 text-xs leading-relaxed text-muted">
+              <p>aSocial is a quiet place. Be gentle, take breaks, and write like no one is counting — because no one is.</p>
+              <CreditPill />
             </footer>
           </div>
         </aside>

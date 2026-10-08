@@ -60,6 +60,7 @@
 @theme {
   --animate-fade-in: fade-in 0.35s ease-out both;
   --animate-rise: rise 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-credit-blink: credit-blink 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 
   @keyframes fade-in {
     from { opacity: 0; }
@@ -68,6 +69,9 @@
   @keyframes rise {
     from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes credit-blink {
+    50% { opacity: 0.5; }
   }
 }
 
