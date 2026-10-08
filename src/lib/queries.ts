@@ -14,6 +14,10 @@ export const keys = {
   post: (id: string) => ["post", id] as const,
   comments: (id: string) => ["comments", id] as const,
   profile: (username: string) => ["profile", username] as const,
+  tag: (tag: string) => ["posts", "tag", tag] as const,
+  promptAnswers: (date: string) => ["posts", "prompt-date", date] as const,
+  conversations: ["conversations"] as const,
+  messages: (id: string) => ["messages", id] as const,
 };
 
 function infinitePosts(key: readonly unknown[], path: string, query: Record<string, string | undefined> = {}, enabled = true) {
@@ -34,6 +38,26 @@ export function useFeed(feed: "latest" | "following" | "prompt", mood?: Mood) {
 
 export function useUserPosts(username: string) {
   return useInfiniteQuery(infinitePosts(keys.userPosts(username), `/users/${username}/posts`));
+}
+
+export function useTagPosts(tag: string) {
+  return useInfiniteQuery(infinitePosts(keys.tag(tag), "/posts", { tag }));
+}
+
+export function usePromptAnswers(date: string) {
+  return useInfiniteQuery(infinitePosts(keys.promptAnswers(date), "/posts", { promptDate: date }));
+}
+
+export function usePromptOn(date: string) {
+  return useQuery({ queryKey: ["prompt", date], queryFn: () => api<DailyPrompt>(`/prompts/${date}`), staleTime: 10 * 60_000, retry: false });
+}
+
+export function useTrendingTags() {
+  return useQuery({
+    queryKey: ["tags", "trending"],
+    queryFn: () => api<{ items: { tag: string; posts: number }[] }>("/tags/trending").then((r) => r.items),
+    staleTime: 5 * 60_000,
+  });
 }
 
 export function useBookmarks() {
@@ -74,7 +98,7 @@ export function useSummary() {
   const { me } = useAuth();
   return useQuery({
     queryKey: ["summary"],
-    queryFn: () => api<{ unread: number; letters: number }>("/notifications/summary"),
+    queryFn: () => api<{ unread: number; letters: number; messages: number }>("/notifications/summary"),
     enabled: !!me,
     // Calm, not real-time: check in once a minute while the tab is open.
     refetchInterval: 60_000,
