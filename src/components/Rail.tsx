@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router";
 import { useAuth } from "../lib/auth";
 import { usePrompt, useResonating, useSuggested } from "../lib/queries";
 import { FollowButton } from "./FollowButton";
+import { plainText } from "./RichText";
 import { Avatar } from "./ui/Avatar";
 import { MoodChip, SectionTitle } from "./ui/misc";
 
@@ -44,7 +45,7 @@ export function PromptCard() {
       </p>
       <p className="mt-2.5 font-serif text-lg leading-snug">{prompt.data.text}</p>
       <div className="mt-4 flex items-center justify-between gap-3 text-sm">
-        <Link to="/?feed=prompt" className="text-muted hover:text-ink">
+        <Link to={`/prompt/${prompt.data.date}`} className="text-muted hover:text-ink">
           {prompt.data.answers ? `${prompt.data.answers} ${prompt.data.answers === 1 ? "answer" : "answers"}` : "No answers yet"}
         </Link>
         <Link to={me ? "/?answer=1" : "/join"} className="inline-flex items-center gap-1 font-medium text-accent hover:underline">
@@ -72,7 +73,7 @@ export function Resonating() {
                 {post.mood ? <MoodChip mood={post.mood} /> : null}
               </div>
               <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-ink-soft group-hover:text-ink">
-                {post.body || "Shared a photo"}
+                {plainText(post.body) || "Shared a photo"}
               </p>
             </Link>
           </li>

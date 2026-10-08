@@ -7,7 +7,11 @@ import { api, errorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { fullDate, timeAgo } from "../lib/format";
 import { keys, patchPostEverywhere } from "../lib/queries";
-import type { Comment, Post } from "../lib/types";
+import type { Comment, Post, ReactionKind } from "../lib/types";
+import { ReactionControl } from "./PostCard";
+import { ReactionSummary } from "./ReactionSummary";
+import { RichEditor } from "./RichEditor";
+import { RichText } from "./RichText";
 import { Avatar } from "./ui/Avatar";
 import { Button } from "./ui/Button";
 import { Spinner } from "./ui/Spinner";
@@ -58,17 +62,16 @@ export function CommentThread({ post }: { post: Post }) {
           }}
         >
           <Avatar user={me} size="sm" />
-          <textarea
+          <RichEditor
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && draft.trim()) add.mutate();
-            }}
+            onChange={setDraft}
+            onSubmit={() => draft.trim() && add.mutate()}
             rows={1}
             maxLength={1000}
-            placeholder="Write a kind reply…"
-            aria-label="Write a reply"
-            className="field min-h-10 flex-1 resize-none py-2 [field-sizing:content]"
+            placeholder="Write a kind reply… (@ to mention)"
+            label="Write a reply"
+            wrapperClassName="min-w-0 flex-1"
+            className="field min-h-10 resize-none py-2 [field-sizing:content]"
           />
           <Button type="submit" size="icon" loading={add.isPending} disabled={!draft.trim()} aria-label="Send reply">
             {!add.isPending ? <Send className="size-4" /> : null}
@@ -87,7 +90,25 @@ export function CommentThread({ post }: { post: Post }) {
 }
 
 function CommentItem({ comment, postId, onDeleted }: { comment: Comment; postId: string; onDeleted: () => void }) {
+  const { me } = useAuth();
   const queryClient = useQueryClient();
+  const replace = (next: Comment) =>
+    queryClient.setQueryData<Comment[]>(keys.comments(postId), (old = []) => old.map((c) => (c.id === next.id ? next : c)));
+
+  const react = useMutation({
+    mutationFn: (kind: ReactionKind | null) =>
+      api<{ comment: Comment }>(`/comments/${comment.id}/reaction`, kind ? { method: "PUT", body: { kind } } : { method: "DELETE" }),
+    onMutate: (kind) => {
+      const previous = comment;
+      replace({ ...comment, myReaction: kind });
+      return { previous };
+    },
+    onSuccess: (data) => replace(data.comment),
+    onError: (error, _kind, context) => {
+      if (context) replace(context.previous);
+      toast.error(errorMessage(error));
+    },
+  });
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(comment.body);
 
@@ -144,7 +165,7 @@ function CommentItem({ comment, postId, onDeleted }: { comment: Comment; postId:
                 update.mutate();
               }}
             >
-              <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} maxLength={1000} className="field text-sm" autoFocus />
+              <RichEditor label="Edit reply" value={text} onChange={setText} onSubmit={() => update.mutate()} rows={2} maxLength={1000} className="field text-sm" autoFocus />
               <div className="flex justify-end gap-2">
                 <Button size="sm" variant="ghost" onClick={() => (setEditing(false), setText(comment.body))}>
                   Cancel
@@ -155,20 +176,23 @@ function CommentItem({ comment, postId, onDeleted }: { comment: Comment; postId:
               </div>
             </form>
           ) : (
-            <p className="mt-0.5 text-[15px] leading-relaxed break-words whitespace-pre-wrap">{comment.body}</p>
+            <RichText text={comment.body} compact className="mt-0.5 text-[15px] leading-relaxed" />
           )}
         </div>
-        {comment.isMine && !editing ? (
-          <div className="mt-1 flex gap-3 pl-2 text-xs text-muted opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
-            <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1 hover:text-ink">
-              <Pencil className="size-3" /> Edit
-            </button>
-            <button
-              onClick={() => confirm("Delete this reply?") && remove.mutate()}
-              className="inline-flex items-center gap-1 hover:text-clay"
-            >
-              <Trash2 className="size-3" /> Delete
-            </button>
+        {!editing ? (
+          <div className="mt-1 flex items-center gap-2 pl-1 text-xs text-muted">
+            {me ? <ReactionControl size="sm" current={comment.myReaction} onReact={(kind) => react.mutate(kind)} /> : null}
+            <ReactionSummary size="sm" counts={comment.reactionCounts} total={comment.reactionTotal} />
+            {comment.isMine ? (
+              <span className="flex gap-3 pl-1 opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
+                <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1 hover:text-ink">
+                  <Pencil className="size-3" /> Edit
+                </button>
+                <button onClick={() => confirm("Delete this reply?") && remove.mutate()} className="inline-flex items-center gap-1 hover:text-clay">
+                  <Trash2 className="size-3" /> Delete
+                </button>
+              </span>
+            ) : null}
           </div>
         ) : null}
       </div>

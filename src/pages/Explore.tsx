@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { Hash, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { PageHeader } from "../components/AppShell";
@@ -10,6 +10,7 @@ import { EmptyState, SectionTitle } from "../components/ui/misc";
 import { PageSpinner } from "../components/ui/Spinner";
 import { api } from "../lib/api";
 import { MOOD_KEYS, MOODS, tint } from "../lib/meta";
+import { useTrendingTags } from "../lib/queries";
 import type { PersonSummary, Post } from "../lib/types";
 
 export function Explore() {
@@ -93,6 +94,7 @@ export function Explore() {
         )
       ) : (
         <div className="space-y-6">
+          <TrendingTags />
           <section>
             <SectionTitle>Browse by mood</SectionTitle>
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -122,3 +124,27 @@ export function Explore() {
   );
 }
 
+
+function TrendingTags() {
+  const tags = useTrendingTags();
+  if (!tags.data?.length) return null;
+  return (
+    <section>
+      <SectionTitle>Gently trending</SectionTitle>
+      <ul className="flex flex-wrap gap-2">
+        {tags.data.map(({ tag, posts }) => (
+          <li key={tag}>
+            <Link
+              to={`/tag/${tag}`}
+              className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3.5 py-1.5 text-sm font-medium ring-1 ring-line transition-colors hover:bg-accent-soft hover:text-accent-strong"
+            >
+              <Hash className="size-3.5 text-accent" aria-hidden />
+              {tag}
+              <span className="text-xs font-normal text-muted">{posts}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
