@@ -150,6 +150,8 @@ function PresenceAvatar({ user, online, size = "sm" }: { user: ChatUser; online:
 
 function ConnectionDot() {
   const { status } = useRealtime();
+  // Polling is the normal mode where live updates aren't available; nothing to flag.
+  if (status === "polling") return null;
   if (status === "open") return <span className="size-2 rounded-full bg-emerald-500" title="Live" aria-label="Connected" role="img" />;
   return (
     <span className="inline-flex items-center gap-1 text-[11px] text-muted" title="Live updates are paused; checking every few seconds instead">
@@ -450,7 +452,7 @@ function Thread({ id }: { id: string }) {
           </Button>
         </form>
       )}
-      {status !== "open" ? (
+      {status === "offline" ? (
         <p className="sr-only" role="status">
           Live updates are paused. New messages are checked every few seconds.
         </p>

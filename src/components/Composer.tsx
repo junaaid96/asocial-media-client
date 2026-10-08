@@ -127,6 +127,11 @@ export function Composer({ answeringPrompt = false, onPosted, autoFocus }: { ans
         </div>
       ) : null}
 
+      {/* Always visible, so it's clear who will see a post before you start writing. */}
+      <div className="mt-3 sm:ml-14">
+        <VisibilityPicker name="composer-visibility" value={visibility} onChange={setVisibility} />
+      </div>
+
       {expanded ? (
         <div className="mt-3 animate-fade-in space-y-3 sm:ml-14">
           <div>
@@ -137,7 +142,6 @@ export function Composer({ answeringPrompt = false, onPosted, autoFocus }: { ans
               ))}
             </div>
           </div>
-          <VisibilityPicker name="composer-visibility" value={visibility} onChange={setVisibility} />
           {cwOn ? (
             <input
               value={warning}

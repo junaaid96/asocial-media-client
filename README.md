@@ -62,4 +62,12 @@ assets). Set `VITE_API_URL` to the API's URL in the Vercel project's Production 
 
 Real-time chat connects to `VITE_WS_URL`, or to `VITE_API_URL` with `ws(s)://` and `/ws` when it isn't set.
 WebSockets need the API on a long-running host (`npm start` on the server). On a serverless deployment chat
-still works through polling (every 5 seconds in an open conversation), just without live typing and presence.
+still works through polling (every 5 seconds in an open conversation), just without live typing and presence:
+
+- `VITE_WS_URL=` (empty) turns the socket off: polling only.
+- An API on `*.vercel.app` is detected automatically and never gets a socket attempt.
+- If the socket can't connect after 3 tries (or 8 after a working connection drops), the app stops retrying for
+  that page load and keeps polling quietly.
+
+Features that need a newer API than the one deployed fail soft: time tracking hides itself if `/api/me/usage`
+is missing, and unknown values (visibility, reactions, stats) fall back to safe defaults instead of crashing.

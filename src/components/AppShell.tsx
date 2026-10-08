@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { Bell, Bookmark, Compass, Home, LogOut, Mail, MessageCircle, Moon, MoreHorizontal, PenLine, Settings, ShieldCheck, Sun, SunMoon, User, Wind } from "lucide-react";
+import { Bell, Bookmark, Compass, Home, LogOut, Mail, MessageCircle, Moon, PenLine, Settings, ShieldCheck, Sun, SunMoon, User, Wind } from "lucide-react";
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import { Link, NavLink, Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -16,7 +16,6 @@ import { Logo } from "./Logo";
 import { Avatar } from "./ui/Avatar";
 import { Button } from "./ui/Button";
 import { Dialog } from "./ui/Dialog";
-import { Menu, MenuItem } from "./ui/Menu";
 import { SuspendedBanner, UsageNudge } from "./Wellbeing";
 
 interface LetterDraft {
@@ -121,6 +120,7 @@ function useNavItems() {
 function Sidebar() {
   const { me } = useAuth();
   const { openWrite, openBreathe } = useShell();
+  const signOutNow = useSignOutNow();
   const { items, hushed } = useNavItems();
 
   return (
@@ -171,7 +171,7 @@ function Sidebar() {
         </div>
       )}
 
-      <div className="mt-auto space-y-2">
+      <div className="mt-auto space-y-2 pt-6">
         {hushed ? (
           <p className="flex items-center gap-2 px-3 text-xs text-muted">
             <Moon className="size-3.5" /> Notifications hushed while you recharge
@@ -185,15 +185,21 @@ function Sidebar() {
           <ThemeCycle />
         </div>
         {me ? (
-          <div className="flex items-center gap-1">
-            <Link to={`/u/${me.username}`} className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-2 py-2 hover:bg-surface-2">
+          <div className="space-y-1 border-t border-line pt-2">
+            <Link to={`/u/${me.username}`} className="flex min-w-0 items-center gap-3 rounded-2xl px-2 py-2 hover:bg-surface-2">
               <Avatar user={me} size="sm" showBattery />
               <span className="min-w-0">
                 <span className="block truncate text-sm font-semibold">{me.displayName}</span>
                 <span className="block truncate text-xs text-muted">@{me.username}</span>
               </span>
             </Link>
-            <AccountMenu direction="up" trigger={<MoreHorizontal className="size-5" />} />
+            <button
+              type="button"
+              onClick={signOutNow}
+              className="flex w-full items-center gap-2 rounded-full px-3 py-2 text-sm text-muted transition-colors hover:bg-clay-soft hover:text-clay focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+            >
+              <LogOut className="size-4" aria-hidden /> Sign out
+            </button>
           </div>
         ) : null}
       </div>
@@ -223,6 +229,7 @@ export function ThemeCycle() {
 function MobileTopBar() {
   const { me } = useAuth();
   const { openBreathe } = useShell();
+  const signOutNow = useSignOutNow();
   return (
     <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-bg/85 px-4 py-2.5 backdrop-blur-md lg:hidden">
       <Link to="/" aria-label="aSocial home" className="mr-auto">
@@ -236,10 +243,18 @@ function MobileTopBar() {
         <>
           <MobileLettersLink />
           <BatteryPicker compact />
-          <AccountMenu
-            trigger={<Avatar user={me} size="sm" />}
-            triggerClassName="ml-1 rounded-full focus-visible:ring-2 focus-visible:ring-accent"
-          />
+          <Link to={`/u/${me.username}`} aria-label="Your profile" className="ml-1 rounded-full focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none">
+            <Avatar user={me} size="sm" />
+          </Link>
+          <button
+            type="button"
+            onClick={signOutNow}
+            aria-label="Sign out"
+            title="Sign out"
+            className="rounded-full p-2 text-muted hover:bg-clay-soft hover:text-clay focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+          >
+            <LogOut className="size-[18px]" aria-hidden />
+          </button>
         </>
       ) : (
         <Link to="/login">
@@ -250,36 +265,15 @@ function MobileTopBar() {
   );
 }
 
-/** Account menu next to your name (sidebar) and on your avatar (mobile top bar): profile, settings, sign out. */
-function AccountMenu({ trigger, direction, triggerClassName }: { trigger: ReactNode; direction?: "up" | "down"; triggerClassName?: string }) {
-  const { me, signOut } = useAuth();
+/** Signs out right away (no confirmation) and lands on the welcome page. */
+function useSignOutNow() {
+  const { signOut } = useAuth();
   const navigate = useNavigate();
-  if (!me) return null;
-  return (
-    <Menu label={`Account menu for ${me.displayName}`} trigger={trigger} direction={direction} triggerClassName={triggerClassName}>
-      {(close) => (
-        <>
-          <MenuItem onClick={() => (close(), navigate(`/u/${me.username}`))}>
-            <User className="size-4" /> Your profile
-          </MenuItem>
-          <MenuItem onClick={() => (close(), navigate("/settings"))}>
-            <Settings className="size-4" /> Settings
-          </MenuItem>
-          <MenuItem
-            danger
-            onClick={() => {
-              close();
-              signOut();
-              navigate("/", { replace: true });
-              toast("Signed out. Come back whenever you like.");
-            }}
-          >
-            <LogOut className="size-4" /> Sign out
-          </MenuItem>
-        </>
-      )}
-    </Menu>
-  );
+  return () => {
+    signOut();
+    navigate("/", { replace: true });
+    toast("Signed out. Come back whenever you like.");
+  };
 }
 
 function MobileLettersLink() {

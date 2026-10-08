@@ -6,11 +6,61 @@ import { type MessageCache, markRead, mergeMessages, receiveMessage } from "./ch
 import { keys } from "./queries";
 import type { Message } from "./types";
 
-// WebSockets need a long-running server. Where the API runs serverless (e.g. Vercel) the socket
-// simply never connects, `status` stays "offline" and the chat screens fall back to polling.
-export const WS_URL = (import.meta.env.VITE_WS_URL as string | undefined) ?? `${API_URL.replace(/^http/, "ws")}/ws`;
+// WebSockets need a long-running server. Serverless hosts (e.g. Vercel Functions) can't hold a
+// socket open, so there the chat screens quietly poll instead:
+// - VITE_WS_URL set to an empty string: polling only, no socket is ever opened.
+// - VITE_WS_URL unset: derived from VITE_API_URL, except for *.vercel.app APIs (polling only).
+// - If the socket never manages to connect, we stop trying after a few attempts and keep polling.
+function resolveWsUrl(): string | null {
+  const configured = import.meta.env.VITE_WS_URL as string | undefined;
+  if (configured !== undefined) return configured.trim() || null;
+  try {
+    if (new URL(API_URL).hostname.endsWith(".vercel.app")) return null;
+  } catch {
+    return null;
+  }
+  return `${API_URL.replace(/^http/, "ws")}/ws`;
+}
 
-type Status = "connecting" | "open" | "offline";
+export const WS_URL = resolveWsUrl();
+
+/** Failed attempts in a row (without ever reaching "ready") before we settle for polling. */
+const GIVE_UP_BEFORE_FIRST_CONNECT = 3;
+/** Failed attempts in a row after a working connection dropped. */
+const GIVE_UP_AFTER_DROP = 8;
+
+/**
+ * Failures are remembered per tab (sessionStorage), so reloads and route changes count toward giving up,
+ * and after giving up we skip the socket on reloads for a while instead of failing again.
+ */
+const FAILURES_KEY = "asocial.wsFailures";
+const GAVE_UP_FOR_MS = 15 * 60_000;
+
+function readFailures(): { count: number; at: number } {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem(FAILURES_KEY) ?? "null") as { count?: unknown; at?: unknown } | null;
+    const count = typeof parsed?.count === "number" ? parsed.count : 0;
+    const at = typeof parsed?.at === "number" ? parsed.at : 0;
+    // Old failures expire, so a long-lived tab tries again eventually.
+    return Date.now() - at < GAVE_UP_FOR_MS ? { count, at } : { count: 0, at: 0 };
+  } catch {
+    return { count: 0, at: 0 };
+  }
+}
+
+function writeFailures(count: number) {
+  try {
+    if (count > 0) sessionStorage.setItem(FAILURES_KEY, JSON.stringify({ count, at: Date.now() }));
+    else sessionStorage.removeItem(FAILURES_KEY);
+  } catch {
+    // storage unavailable: counting stays per page load
+  }
+}
+
+const recentlyGaveUp = () => readFailures().count >= GIVE_UP_BEFORE_FIRST_CONNECT;
+
+/** "polling": live updates are unavailable here, so the app polls instead (quietly, by design). */
+type Status = "connecting" | "open" | "offline" | "polling";
 
 type ServerEvent =
   | { type: "ready"; userId: string }
@@ -27,22 +77,29 @@ interface RealtimeValue {
   sendTyping: (conversationId: string, typing: boolean) => void;
 }
 
-const RealtimeContext = createContext<RealtimeValue>({ status: "offline", presence: {}, typing: {}, sendTyping: () => undefined });
+const RealtimeContext = createContext<RealtimeValue>({ status: WS_URL ? "offline" : "polling", presence: {}, typing: {}, sendTyping: () => undefined });
 
 const TYPING_TTL = 6_000;
 
 export function RealtimeProvider({ children }: { children: ReactNode }) {
   const { me } = useAuth();
   const queryClient = useQueryClient();
-  const [status, setStatus] = useState<Status>("offline");
+  const [status, setStatus] = useState<Status>(WS_URL ? "offline" : "polling");
   const [presence, setPresence] = useState<RealtimeValue["presence"]>({});
   const [typing, setTyping] = useState<Record<string, number>>({});
   const socketRef = useRef<WebSocket | null>(null);
   const username = me?.username;
 
   useEffect(() => {
-    if (!username || typeof WebSocket === "undefined") return;
+    const url = WS_URL;
+    if (!username) return;
+    if (!url || typeof WebSocket === "undefined" || recentlyGaveUp()) {
+      setStatus("polling");
+      return;
+    }
     let stopped = false;
+    let gaveUp = false;
+    let everReady = false;
     let attempt = 0;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let pingTimer: ReturnType<typeof setInterval> | undefined;
@@ -51,6 +108,8 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       switch (event.type) {
         case "ready":
           attempt = 0;
+          everReady = true;
+          writeFailures(0);
           setStatus("open");
           // Catch up on anything that happened while we were away.
           void queryClient.invalidateQueries({ queryKey: keys.conversations });
@@ -79,11 +138,11 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
 
     const connect = () => {
       const token = tokenStore.get();
-      if (stopped || !token) return;
+      if (stopped || gaveUp || !token) return;
       setStatus("connecting");
       let socket: WebSocket;
       try {
-        socket = new WebSocket(WS_URL);
+        socket = new WebSocket(url);
       } catch {
         return scheduleRetry();
       }
@@ -106,6 +165,15 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
 
     const scheduleRetry = () => {
       clearTimeout(retryTimer);
+      // Before the first successful connection, failures count across reloads in this tab.
+      const failures = everReady ? attempt + 1 : readFailures().count + 1;
+      if (!everReady) writeFailures(failures);
+      if (failures >= (everReady ? GIVE_UP_AFTER_DROP : GIVE_UP_BEFORE_FIRST_CONNECT)) {
+        // Live updates aren't reachable from here; poll quietly instead of retrying forever.
+        gaveUp = true;
+        setStatus("polling");
+        return;
+      }
       // Exponential backoff with jitter: ~1s, 2s, 4s … capped at 30s.
       const delay = Math.min(30_000, 1000 * 2 ** attempt) * (0.75 + Math.random() * 0.5);
       attempt++;
@@ -113,7 +181,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     };
 
     const reconnectNow = () => {
-      if (socketRef.current || stopped) return;
+      if (socketRef.current || stopped || gaveUp) return;
       attempt = 0;
       clearTimeout(retryTimer);
       connect();

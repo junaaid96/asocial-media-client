@@ -39,13 +39,22 @@ export function VisibilityPicker({ value, onChange, name }: { value: Visibility;
   );
 }
 
-/** Small badge shown on non-public posts. */
-export function VisibilityBadge({ visibility }: { visibility: Visibility }) {
-  if (visibility === "public") return null;
-  const meta = VISIBILITY[visibility];
+/** Labelled badge on your own posts showing who can see them. */
+export function VisibilityBadge({ visibility }: { visibility: Visibility | null | undefined }) {
+  // Unknown or missing (e.g. an older API) means the server didn't say: show nothing rather than guess.
+  const meta = visibility ? VISIBILITY[visibility] : undefined;
+  if (!meta) return null;
   return (
-    <span className="inline-flex items-center gap-1" title={meta.hint}>
-      · <meta.icon className="size-3.5" aria-hidden /> {meta.label}
+    <span
+      className={clsx(
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1",
+        visibility === "public" ? "bg-surface-2 text-ink-soft ring-line" : "bg-accent-soft text-accent-strong ring-accent/30",
+      )}
+      title={`Who can see this: ${meta.label}. ${meta.hint}`}
+    >
+      <meta.icon className="size-3.5" aria-hidden />
+      <span className="sr-only">Visible to: </span>
+      {meta.label}
     </span>
   );
 }

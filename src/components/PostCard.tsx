@@ -273,7 +273,7 @@ export function ReactionControl({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const meta = current ? REACTIONS[current] : null;
+  const meta = current ? (REACTIONS[current] ?? null) : null;
 
   useEffect(() => {
     if (!open) return;

@@ -43,13 +43,14 @@ function useUpdateMe() {
 
 export function Settings() {
   const { me } = useAuth();
+  const usage = useUsage();
   if (!me) return null;
   return (
     <div className="space-y-5">
       <PageHeader title="Settings" subtitle="Make aSocial feel like your own quiet room." />
       <ProfileForm me={me} />
       <PresenceSettings me={me} />
-      <TimeSettings me={me} />
+      {usage.available ? <TimeSettings me={me} /> : null}
       <AppearanceSettings />
       <Section title="Account" description={`Signed in as ${me.email}. Sign out from the menu next to your name.`}>
         <div className="flex flex-wrap gap-2">
