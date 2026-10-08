@@ -4,6 +4,7 @@ import { type FormEvent, type ReactNode, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { ThemeCycle } from "../components/AppShell";
+import { CreditPill } from "../components/CreditPill";
 import { Logo } from "../components/Logo";
 import { Button } from "../components/ui/Button";
 import { api, errorMessage } from "../lib/api";
@@ -32,7 +33,8 @@ function AuthLayout({ title, subtitle, children }: { title: string; subtitle: Re
         </blockquote>
         <p className="relative mt-12 text-sm opacity-75">No follower counts on display · Letters that take their time · A feed that ends</p>
       </aside>
-      <main className="flex flex-col px-5 py-6 sm:px-10">
+      {/* Bottom padding keeps the form clear of the fixed credit pill on short screens. */}
+      <main className="flex flex-col px-5 pt-6 pb-24 sm:px-10">
         <div className="flex items-center justify-between">
           <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted hover:text-ink">
             <ArrowLeft className="size-4" /> <span className="lg:hidden">
@@ -48,6 +50,10 @@ function AuthLayout({ title, subtitle, children }: { title: string; subtitle: Re
           <div className="mt-8">{children}</div>
         </div>
       </main>
+      {/* Centered under the form: across the screen on mobile, within the form column on large screens. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-10 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] lg:left-1/2">
+        <CreditPill className="pointer-events-auto max-w-full shadow-sm backdrop-blur-md" />
+      </div>
     </div>
   );
 }

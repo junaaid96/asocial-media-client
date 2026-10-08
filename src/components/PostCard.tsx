@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
-import { Bookmark, EyeOff, Link2, MessageCircle, MoreHorizontal, Pencil, Sparkles, Trash2 } from "lucide-react";
+import { Bookmark, EyeOff, Flag, Link2, MessageCircle, MoreHorizontal, Pencil, ShieldAlert, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -9,8 +9,13 @@ import { useAuth } from "../lib/auth";
 import { fullDate, timeAgo } from "../lib/format";
 import { MOOD_KEYS, REACTIONS, REACTION_KEYS } from "../lib/meta";
 import { patchPostEverywhere, removePostEverywhere, updatePostEverywhere } from "../lib/queries";
-import type { Mood, Post, ReactionKind } from "../lib/types";
+import type { Mood, Post, ReactionKind, Visibility } from "../lib/types";
 import { CommentThread } from "./CommentThread";
+import { ReactionSummary } from "./ReactionSummary";
+import { ReportDialog } from "./ReportDialog";
+import { RichEditor } from "./RichEditor";
+import { RichText, plainText } from "./RichText";
+import { VisibilityBadge, VisibilityPicker } from "./VisibilityPicker";
 import { Avatar } from "./ui/Avatar";
 import { Button } from "./ui/Button";
 import { Dialog } from "./ui/Dialog";
@@ -25,6 +30,7 @@ export function PostCard({ post, expandComments = false }: { post: Post; expandC
   const queryClient = useQueryClient();
   const [revealed, setRevealed] = useState(!post.contentWarning || post.isMine);
   const [expanded, setExpanded] = useState(post.body.length <= LONG_POST);
+  const [reporting, setReporting] = useState(false);
   const [showComments, setShowComments] = useState(expandComments);
   const [editing, setEditing] = useState(false);
   const [lightbox, setLightbox] = useState(false);
@@ -78,8 +84,6 @@ export function PostCard({ post, expandComments = false }: { post: Post; expandC
     toast("Link copied");
   };
 
-  const body = expanded ? post.body : `${post.body.slice(0, LONG_POST).trimEnd()}…`;
-
   return (
     <article className="card animate-rise overflow-hidden" aria-label={`Post by ${post.author?.displayName ?? "a quiet soul"}`}>
       <div className="p-4 sm:p-5">
@@ -107,6 +111,7 @@ export function PostCard({ post, expandComments = false }: { post: Post; expandC
                 {timeAgo(post.createdAt)}
               </Link>
               {post.editedAt ? <span title={fullDate(post.editedAt)}>· edited</span> : null}
+              {post.isMine ? <VisibilityBadge visibility={post.visibility} /> : null}
               {post.isAnonymous && post.isMine ? (
                 <span className="inline-flex items-center gap-1" title="Only you can see that this is yours">
                   · <EyeOff className="size-3.5" /> posted anonymously
@@ -136,13 +141,36 @@ export function PostCard({ post, expandComments = false }: { post: Post; expandC
                       <Trash2 className="size-4" /> Delete
                     </MenuItem>
                   </>
+                ) : me ? (
+                  <MenuItem onClick={() => (setReporting(true), close())}>
+                    <Flag className="size-4" /> Report post
+                  </MenuItem>
                 ) : null}
               </>
             )}
           </Menu>
         </header>
 
-        {post.promptDate ? (
+        {post.hiddenByModerators ? (
+          <p role="status" className="mt-3 flex items-start gap-2 rounded-xl bg-clay-soft px-3 py-2 text-sm text-ink-soft">
+            <ShieldAlert className="mt-0.5 size-4 shrink-0 text-clay" aria-hidden />
+            Our moderators hid this post, so only you can see it.
+          </p>
+        ) : null}
+
+        {post.prompt ? (
+          <Link
+            to={`/prompt/${post.prompt.date}`}
+            className="group mt-3 flex items-start gap-2 rounded-xl bg-accent-soft/60 px-3 py-2 text-sm text-ink-soft transition-colors hover:bg-accent-soft"
+            aria-label={`Answering the daily prompt: ${post.prompt.text}. See all answers`}
+          >
+            <Sparkles className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden />
+            <span>
+              <span className="block text-xs font-medium text-accent">Answering the daily prompt</span>
+              <span className="font-serif italic group-hover:underline">{post.prompt.text}</span>
+            </span>
+          </Link>
+        ) : post.promptDate ? (
           <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-accent">
             <Sparkles className="size-3.5" /> Answering the daily prompt
           </p>
@@ -164,20 +192,23 @@ export function PostCard({ post, expandComments = false }: { post: Post; expandC
                 <p className="mb-2 text-xs font-medium text-muted">Content note: {post.contentWarning}</p>
               ) : null}
               {post.body ? (
-                <p className="text-[16px] leading-relaxed break-words whitespace-pre-wrap text-ink">
-                  {body}
+                <div>
+                  <div className={clsx("relative", !expanded && "max-h-72 overflow-hidden")}>
+                    <RichText text={post.body} className="text-[16px] leading-relaxed text-ink" />
+                    {!expanded ? <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-surface" /> : null}
+                  </div>
                   {!expanded ? (
-                    <button onClick={() => setExpanded(true)} className="ml-1 font-medium text-accent hover:underline">
+                    <button onClick={() => setExpanded(true)} className="mt-1 text-sm font-medium text-accent hover:underline">
                       Read more
                     </button>
                   ) : null}
-                </p>
+                </div>
               ) : null}
               {post.imageUrl ? (
                 <button onClick={() => setLightbox(true)} className="mt-3 block w-full overflow-hidden rounded-2xl border border-line bg-surface-2">
                   <img
                     src={assetUrl(post.imageUrl)}
-                    alt={post.body ? `Image shared with: ${post.body.slice(0, 80)}` : "Shared image"}
+                    alt={post.body ? `Image shared with: ${plainText(post.body).slice(0, 80)}` : "Shared image"}
                     className="max-h-[32rem] w-full object-cover transition-transform duration-500 hover:scale-[1.01]"
                     loading="lazy"
                     decoding="async"
@@ -202,20 +233,7 @@ export function PostCard({ post, expandComments = false }: { post: Post; expandC
             {post.commentCount ? `${post.commentCount} ${post.commentCount === 1 ? "reply" : "replies"}` : "Reply"}
           </button>
           <div className="ml-auto flex items-center gap-2">
-            {post.reactionTotal !== null && post.reactionTotal > 0 ? (
-              <span
-                className="text-xs whitespace-nowrap text-muted"
-                title={REACTION_KEYS.filter((k) => post.reactionCounts?.[k])
-                  .map((k) => `${REACTIONS[k].emoji} ${post.reactionCounts?.[k]}`)
-                  .join("  ")}
-              >
-                {post.isMine ? <span className="hidden sm:inline">Resonated with </span> : null}
-                {post.reactionTotal} <span className="hidden sm:inline">{post.reactionTotal === 1 ? "person" : "people"}</span>
-                <span className="sm:hidden" aria-hidden>
-                  {" "}🤍
-                </span>
-              </span>
-            ) : null}
+            <ReactionSummary counts={post.reactionCounts} total={post.reactionTotal} isMine={post.isMine} />
             <button
               onClick={() => (me ? bookmark.mutate(!post.bookmarked) : requireSignIn())}
               aria-pressed={post.bookmarked}
@@ -239,11 +257,20 @@ export function PostCard({ post, expandComments = false }: { post: Post; expandC
         </Dialog>
       ) : null}
       {editing ? <EditPostDialog post={post} onClose={() => setEditing(false)} /> : null}
+      <ReportDialog target={reporting ? { targetType: "post", postId: post.id } : null} onClose={() => setReporting(false)} />
     </article>
   );
 }
 
-function ReactionControl({ current, onReact }: { current: ReactionKind | null; onReact: (kind: ReactionKind | null) => void }) {
+export function ReactionControl({
+  current,
+  onReact,
+  size = "md",
+}: {
+  current: ReactionKind | null;
+  onReact: (kind: ReactionKind | null) => void;
+  size?: "sm" | "md";
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const meta = current ? REACTIONS[current] : null;
@@ -271,11 +298,12 @@ function ReactionControl({ current, onReact }: { current: ReactionKind | null; o
         aria-label={meta ? `Remove reaction: ${meta.label}` : "React"}
         aria-pressed={!!current}
         className={clsx(
-          "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm whitespace-nowrap transition-colors",
+          "inline-flex items-center rounded-full whitespace-nowrap transition-colors",
+          size === "sm" ? "gap-1 px-2 py-0.5 text-xs" : "gap-1.5 px-3 py-1.5 text-sm",
           current ? "bg-accent-soft font-medium text-accent-strong" : "text-muted hover:bg-surface-2 hover:text-ink",
         )}
       >
-        <span className="text-base leading-none" aria-hidden>
+        <span className={clsx("leading-none", size === "sm" ? "text-sm" : "text-base")} aria-hidden>
           {meta?.emoji ?? "🤍"}
         </span>
         {meta?.label ?? "Resonate"}
@@ -293,7 +321,9 @@ function ReactionControl({ current, onReact }: { current: ReactionKind | null; o
                 title={REACTIONS[kind].label}
                 aria-label={REACTIONS[kind].label}
                 className={clsx(
-                  "grid size-10 place-items-center rounded-xl text-xl transition-transform hover:-translate-y-0.5 hover:scale-110 hover:bg-surface-2",
+                  "grid place-items-center rounded-xl",
+                  size === "sm" ? "size-8 text-lg" : "size-10 text-xl",
+                  " transition-transform hover:-translate-y-0.5 hover:scale-110 hover:bg-surface-2",
                   kind === current && "bg-accent-soft",
                 )}
               >
@@ -312,9 +342,10 @@ function EditPostDialog({ post, onClose }: { post: Post; onClose: () => void }) 
   const [body, setBody] = useState(post.body);
   const [mood, setMood] = useState<Mood | null>(post.mood);
   const [warning, setWarning] = useState(post.contentWarning ?? "");
+  const [visibility, setVisibility] = useState<Visibility>(post.visibility);
 
   const save = useMutation({
-    mutationFn: () => api<{ post: Post }>(`/posts/${post.id}`, { method: "PATCH", body: { body, mood, contentWarning: warning } }),
+    mutationFn: () => api<{ post: Post }>(`/posts/${post.id}`, { method: "PATCH", body: { body, mood, contentWarning: warning, visibility } }),
     onSuccess: (data) => {
       updatePostEverywhere(queryClient, data.post);
       toast("Post updated");
@@ -332,7 +363,18 @@ function EditPostDialog({ post, onClose }: { post: Post; onClose: () => void }) 
         }}
         className="space-y-4"
       >
-        <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} maxLength={3000} className="field resize-y leading-relaxed" autoFocus />
+        <RichEditor
+          label="Post text"
+          value={body}
+          onChange={setBody}
+          onSubmit={() => save.mutate()}
+          rows={6}
+          maxLength={3000}
+          className="field resize-y leading-relaxed"
+          autoFocus
+          toolbar
+        />
+        <VisibilityPicker name={`edit-visibility-${post.id}`} value={visibility} onChange={setVisibility} />
         <div className="flex flex-wrap gap-1.5">
           {MOOD_KEYS.map((m) => (
             <MoodChip key={m} mood={m} active={mood === m} onClick={() => setMood(mood === m ? null : m)} />

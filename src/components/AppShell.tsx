@@ -1,7 +1,8 @@
 import clsx from "clsx";
-import { Bell, Bookmark, Compass, Home, Mail, Moon, PenLine, Settings, Sun, SunMoon, User, Wind } from "lucide-react";
+import { Bell, Bookmark, Compass, Home, LogOut, Mail, MessageCircle, Moon, MoreHorizontal, PenLine, Settings, ShieldCheck, Sun, SunMoon, User, Wind } from "lucide-react";
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
-import { Link, NavLink, Outlet, ScrollRestoration, useLocation } from "react-router";
+import { Link, NavLink, Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router";
+import { toast } from "sonner";
 import { useAuth } from "../lib/auth";
 import { useSummary } from "../lib/queries";
 import { type ThemeChoice, useTheme } from "../lib/theme";
@@ -15,6 +16,8 @@ import { Logo } from "./Logo";
 import { Avatar } from "./ui/Avatar";
 import { Button } from "./ui/Button";
 import { Dialog } from "./ui/Dialog";
+import { Menu, MenuItem } from "./ui/Menu";
+import { SuspendedBanner, UsageNudge } from "./Wellbeing";
 
 interface LetterDraft {
   to?: string;
@@ -62,6 +65,8 @@ export function AppShell() {
         Skip to content
       </a>
       <MobileTopBar />
+      <SuspendedBanner />
+      <UsageNudge />
       <div className="mx-auto flex w-full max-w-7xl gap-6 px-0 sm:px-4 lg:px-6">
         <Sidebar />
         <main id="main" className="min-w-0 flex-1 px-3 pt-4 pb-28 sm:px-0 lg:max-w-2xl lg:pt-8 lg:pb-16">
@@ -102,12 +107,14 @@ function useNavItems() {
   const items: { to: string; label: string; icon: typeof Home; badge?: number; auth?: boolean }[] = [
     { to: "/", label: "Home", icon: Home },
     { to: "/explore", label: "Explore", icon: Compass },
+    { to: "/messages", label: "Messages", icon: MessageCircle, badge: hushed ? 0 : summary.data?.messages, auth: true },
     { to: "/letters", label: "Letters", icon: Mail, badge: hushed ? 0 : summary.data?.letters, auth: true },
     { to: "/notifications", label: "Notifications", icon: Bell, badge: hushed ? 0 : summary.data?.unread, auth: true },
     { to: "/saved", label: "Saved", icon: Bookmark, auth: true },
     { to: me ? `/u/${me.username}` : "/login", label: "Profile", icon: User, auth: true },
     { to: "/settings", label: "Settings", icon: Settings, auth: true },
   ];
+  if (me?.role === "admin") items.push({ to: "/admin", label: "Moderation", icon: ShieldCheck, auth: true });
   return { items: items.filter((item) => !item.auth || me), hushed };
 }
 
@@ -178,13 +185,16 @@ function Sidebar() {
           <ThemeCycle />
         </div>
         {me ? (
-          <Link to={`/u/${me.username}`} className="flex items-center gap-3 rounded-2xl px-2 py-2 hover:bg-surface-2">
-            <Avatar user={me} size="sm" showBattery />
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold">{me.displayName}</span>
-              <span className="block truncate text-xs text-muted">@{me.username}</span>
-            </span>
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link to={`/u/${me.username}`} className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-2 py-2 hover:bg-surface-2">
+              <Avatar user={me} size="sm" showBattery />
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold">{me.displayName}</span>
+                <span className="block truncate text-xs text-muted">@{me.username}</span>
+              </span>
+            </Link>
+            <AccountMenu direction="up" trigger={<MoreHorizontal className="size-5" />} />
+          </div>
         ) : null}
       </div>
     </aside>
@@ -224,10 +234,12 @@ function MobileTopBar() {
       <ThemeCycle />
       {me ? (
         <>
+          <MobileLettersLink />
           <BatteryPicker compact />
-          <Link to={`/u/${me.username}`} aria-label="Your profile" className="ml-1 rounded-full">
-            <Avatar user={me} size="sm" />
-          </Link>
+          <AccountMenu
+            trigger={<Avatar user={me} size="sm" />}
+            triggerClassName="ml-1 rounded-full focus-visible:ring-2 focus-visible:ring-accent"
+          />
         </>
       ) : (
         <Link to="/login">
@@ -238,6 +250,50 @@ function MobileTopBar() {
   );
 }
 
+/** Account menu next to your name (sidebar) and on your avatar (mobile top bar): profile, settings, sign out. */
+function AccountMenu({ trigger, direction, triggerClassName }: { trigger: ReactNode; direction?: "up" | "down"; triggerClassName?: string }) {
+  const { me, signOut } = useAuth();
+  const navigate = useNavigate();
+  if (!me) return null;
+  return (
+    <Menu label={`Account menu for ${me.displayName}`} trigger={trigger} direction={direction} triggerClassName={triggerClassName}>
+      {(close) => (
+        <>
+          <MenuItem onClick={() => (close(), navigate(`/u/${me.username}`))}>
+            <User className="size-4" /> Your profile
+          </MenuItem>
+          <MenuItem onClick={() => (close(), navigate("/settings"))}>
+            <Settings className="size-4" /> Settings
+          </MenuItem>
+          <MenuItem
+            danger
+            onClick={() => {
+              close();
+              signOut();
+              navigate("/", { replace: true });
+              toast("Signed out. Come back whenever you like.");
+            }}
+          >
+            <LogOut className="size-4" /> Sign out
+          </MenuItem>
+        </>
+      )}
+    </Menu>
+  );
+}
+
+function MobileLettersLink() {
+  const { items } = useNavItems();
+  const letters = items.find((i) => i.label === "Letters");
+  if (!letters) return null;
+  return (
+    <NavLink to="/letters" aria-label="Letters" className={({ isActive }) => clsx("relative rounded-full p-2 hover:bg-surface-2", isActive ? "text-accent" : "text-muted")}>
+      <Mail className="size-[18px]" />
+      {letters.badge ? <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-clay ring-2 ring-bg" /> : null}
+    </NavLink>
+  );
+}
+
 function MobileNav() {
   const { me } = useAuth();
   const { openWrite } = useShell();
@@ -245,7 +301,7 @@ function MobileNav() {
   if (!me) return null;
   const pick = (label: string) => items.find((i) => i.label === label)!;
   const left = [pick("Home"), pick("Explore")];
-  const right = [pick("Letters"), pick("Notifications")];
+  const right = [pick("Messages"), pick("Notifications")];
 
   const renderItem = (item: (typeof items)[number]) => (
     <NavLink

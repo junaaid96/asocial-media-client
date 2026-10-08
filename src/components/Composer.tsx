@@ -8,7 +8,9 @@ import { useAuth } from "../lib/auth";
 import { uploadImage } from "../lib/image";
 import { MOOD_KEYS } from "../lib/meta";
 import { usePrompt } from "../lib/queries";
-import type { Mood, Post } from "../lib/types";
+import type { Mood, Post, Visibility } from "../lib/types";
+import { RichEditor } from "./RichEditor";
+import { VisibilityPicker } from "./VisibilityPicker";
 import { Avatar } from "./ui/Avatar";
 import { Button } from "./ui/Button";
 import { MoodChip } from "./ui/misc";
@@ -27,6 +29,7 @@ export function Composer({ answeringPrompt = false, onPosted, autoFocus }: { ans
   const [warning, setWarning] = useState("");
   const [anonymous, setAnonymous] = useState(false);
   const [forPrompt, setForPrompt] = useState(answeringPrompt);
+  const [visibility, setVisibility] = useState<Visibility>("public");
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => setForPrompt(answeringPrompt), [answeringPrompt]);
@@ -46,6 +49,7 @@ export function Composer({ answeringPrompt = false, onPosted, autoFocus }: { ans
           contentWarning: cwOn ? warning : null,
           isAnonymous: anonymous,
           answersPrompt: forPrompt,
+          visibility,
         },
       });
     },
@@ -57,10 +61,13 @@ export function Composer({ answeringPrompt = false, onPosted, autoFocus }: { ans
       setWarning("");
       setAnonymous(false);
       setForPrompt(false);
+      setVisibility("public");
       setFocused(false);
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["prompt"] });
-      toast.success(anonymous ? "Shared anonymously" : "Shared with the quiet corner");
+      toast.success(
+        visibility === "private" ? "Saved privately, just for you" : anonymous ? "Shared anonymously" : visibility === "followers" ? "Shared with your followers" : "Shared with the quiet corner",
+      );
       onPosted?.();
     },
     onError: (error) => toast.error(errorMessage(error)),
@@ -90,19 +97,16 @@ export function Composer({ answeringPrompt = false, onPosted, autoFocus }: { ans
       <div className="flex gap-3">
         <Avatar user={anonymous ? null : me} showBattery={!anonymous} />
         <div className="min-w-0 flex-1">
-          <label htmlFor="composer" className="sr-only">
-            Write a post
-          </label>
-          <textarea
+          <RichEditor
             id="composer"
+            label="Write a post"
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={setBody}
             onFocus={() => setFocused(true)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && canPost) publish.mutate();
-            }}
+            onSubmit={() => canPost && publish.mutate()}
             autoFocus={autoFocus}
             rows={expanded ? 4 : 1}
+            toolbar={expanded}
             placeholder={forPrompt ? "Take your time…" : "What's on your mind, quietly?"}
             className="w-full resize-none bg-transparent pt-2 text-[17px] leading-relaxed outline-none placeholder:text-muted"
           />
@@ -133,6 +137,7 @@ export function Composer({ answeringPrompt = false, onPosted, autoFocus }: { ans
               ))}
             </div>
           </div>
+          <VisibilityPicker name="composer-visibility" value={visibility} onChange={setVisibility} />
           {cwOn ? (
             <input
               value={warning}

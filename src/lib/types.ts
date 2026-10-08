@@ -3,6 +3,8 @@ export type Mood = "calm" | "reflective" | "joyful" | "grateful" | "tired" | "an
 export type ReactionKind = "felt" | "hug" | "insight" | "relate";
 export type LettersFrom = "everyone" | "following" | "nobody";
 export type Pace = "breeze" | "afternoon" | "overnight";
+export type Visibility = "public" | "followers" | "private";
+export type Role = "user" | "admin";
 
 export interface PublicUser {
   username: string;
@@ -22,17 +24,24 @@ export interface Profile extends PublicUser {
   location: string;
   lettersFrom: LettersFrom;
   joinedAt: string;
+  online?: boolean;
+  lastSeenAt?: string | null;
 }
 
 export interface Me extends Profile {
   id: string;
   email: string;
   showCounts: boolean;
+  role: Role;
+  suspended: boolean;
+  dailyLimitMinutes: number | null;
 }
 
 export interface ProfileResponse {
   user: Profile;
   isMe: boolean;
+  canMessage: boolean;
+  suspended: boolean;
   isFollowing: boolean;
   followsMe: boolean;
   stats: { posts: number; followers: number | null; following: number | null };
@@ -46,6 +55,9 @@ export interface Post {
   contentWarning: string | null;
   isAnonymous: boolean;
   promptDate: string | null;
+  prompt: { date: string; text: string } | null;
+  visibility: Visibility;
+  hiddenByModerators: boolean;
   createdAt: string;
   editedAt: string | null;
   author: PublicUser | null;
@@ -70,6 +82,9 @@ export interface Comment {
   isMine: boolean;
   isOriginalPoster: boolean;
   author: PublicUser | null;
+  myReaction: ReactionKind | null;
+  reactionCounts: Partial<Record<ReactionKind, number>> | null;
+  reactionTotal: number | null;
 }
 
 export interface Letter {
@@ -87,13 +102,15 @@ export interface Letter {
 
 export interface Notification {
   id: string;
-  type: "reaction" | "comment" | "follow" | "letter";
+  type: "reaction" | "comment" | "follow" | "letter" | "mention" | "comment_reaction";
   createdAt: string;
   read: boolean;
   actor: PublicUser | null;
   postId: string | null;
   postExcerpt: string | null;
   letterId: string | null;
+  commentId: string | null;
+  commentExcerpt: string | null;
   reaction: ReactionKind | null;
 }
 
@@ -102,3 +119,36 @@ export interface DailyPrompt {
   text: string;
   answers: number;
 }
+
+export interface ChatUser extends PublicUser {
+  online: boolean;
+  lastSeenAt: string | null;
+}
+
+export interface Conversation {
+  id: string;
+  other: ChatUser;
+  lastMessage: { body: string; createdAt: string; fromMe: boolean } | null;
+  unread: number;
+  canMessage: boolean;
+  updatedAt: string;
+}
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  sender: string;
+  body: string;
+  clientId: string | null;
+  createdAt: string;
+  readAt: string | null;
+  /** Client-only: still sending, or failed to send. */
+  pending?: "sending" | "failed";
+}
+
+export type ReportReason = "spam" | "harassment" | "hate" | "self_harm" | "sexual" | "violence" | "misinformation" | "impersonation" | "other";
+
+export type ReportTarget =
+  | { targetType: "user"; username: string }
+  | { targetType: "post"; postId: string }
+  | { targetType: "message"; messageId: string };

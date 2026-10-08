@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
-import { Mail, MessageCircle, Moon, UserPlus } from "lucide-react";
+import { AtSign, Mail, MessageCircle, Moon, UserPlus } from "lucide-react";
 import { useEffect } from "react";
 import { Link } from "react-router";
 import { PageHeader } from "../components/AppShell";
@@ -61,7 +61,9 @@ export function Notifications() {
                   <p className="text-[15px] leading-snug">
                     <span className="font-semibold">{n.actor?.displayName ?? "Someone"}</span> {describe(n)}
                   </p>
-                  {n.postExcerpt ? <p className="mt-1 line-clamp-2 text-sm text-muted">“{n.postExcerpt}”</p> : null}
+                  {n.commentExcerpt || n.postExcerpt ? (
+                    <p className="mt-1 line-clamp-2 text-sm text-muted">“{n.commentExcerpt || n.postExcerpt}”</p>
+                  ) : null}
                   <p className="mt-1 text-xs text-muted">{timeAgo(n.createdAt)}</p>
                 </div>
                 {!n.read ? <span className="mt-2 size-2 shrink-0 rounded-full bg-clay" aria-label="Unread" /> : null}
@@ -84,12 +86,17 @@ function describe(n: Notification) {
       return "started following you";
     case "letter":
       return "sent you a letter. It just arrived.";
+    case "mention":
+      return n.commentId ? "mentioned you in a reply" : "mentioned you in a post";
+    case "comment_reaction":
+      return n.reaction ? `${REACTIONS[n.reaction].verb} your reply` : "resonated with your reply";
   }
 }
 
 function NotificationIcon({ n }: { n: Notification }) {
-  if (n.type === "reaction") return <span aria-hidden>{n.reaction ? REACTIONS[n.reaction].emoji : "🤍"}</span>;
+  if (n.type === "reaction" || n.type === "comment_reaction") return <span aria-hidden>{n.reaction ? REACTIONS[n.reaction].emoji : "🤍"}</span>;
   if (n.type === "comment") return <MessageCircle className="size-3.5 text-accent" />;
   if (n.type === "follow") return <UserPlus className="size-3.5 text-accent" />;
+  if (n.type === "mention") return <AtSign className="size-3.5 text-accent" />;
   return <Mail className="size-3.5 text-clay" />;
 }
