@@ -17,6 +17,10 @@ const PostDetail = lazy(() => import("./pages/PostDetail").then((m) => ({ defaul
 const Profile = lazy(() => import("./pages/Profile").then((m) => ({ default: m.Profile })));
 const Saved = lazy(() => import("./pages/Saved").then((m) => ({ default: m.Saved })));
 const Settings = lazy(() => import("./pages/Settings").then((m) => ({ default: m.Settings })));
+const Messages = lazy(() => import("./pages/Messages").then((m) => ({ default: m.Messages })));
+const Admin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.Admin })));
+const Tag = lazy(() => import("./pages/Tag").then((m) => ({ default: m.Tag })));
+const PromptAnswers = lazy(() => import("./pages/PromptAnswers").then((m) => ({ default: m.PromptAnswers })));
 
 const page = (node: ReactNode) => <Suspense fallback={<PageSpinner />}>{node}</Suspense>;
 
@@ -25,6 +29,13 @@ function RequireAuth({ children }: { children: ReactNode }) {
   const location = useLocation();
   if (loading) return <PageSpinner />;
   if (!me) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
+  return children;
+}
+
+function RequireAdmin({ children }: { children: ReactNode }) {
+  const { me, loading } = useAuth();
+  if (loading) return <PageSpinner />;
+  if (me?.role !== "admin") return <NotFound />;
   return children;
 }
 
@@ -47,6 +58,11 @@ export const router = createBrowserRouter([
           { path: "notifications", element: page(<RequireAuth><Notifications /></RequireAuth>) },
           { path: "saved", element: page(<RequireAuth><Saved /></RequireAuth>) },
           { path: "settings", element: page(<RequireAuth><Settings /></RequireAuth>) },
+          { path: "messages", element: page(<RequireAuth><Messages /></RequireAuth>) },
+          { path: "messages/:id", element: page(<RequireAuth><Messages /></RequireAuth>) },
+          { path: "tag/:tag", element: page(<Tag />) },
+          { path: "prompt/:date", element: page(<PromptAnswers />) },
+          { path: "admin", element: page(<RequireAuth><RequireAdmin><Admin /></RequireAdmin></RequireAuth>) },
           { path: "*", element: <NotFound /> },
         ],
       },

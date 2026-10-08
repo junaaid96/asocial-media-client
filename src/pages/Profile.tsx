@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { addDays, format, startOfDay, subDays } from "date-fns";
-import { Bookmark, CalendarDays, Feather, GraduationCap, MapPin, Settings } from "lucide-react";
+import { Bookmark, CalendarDays, Feather, Flag, GraduationCap, MapPin, MessageCircle, MoreHorizontal, Settings, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { useShell } from "../components/AppShell";
 import { FeedList, defaultEmpty } from "../components/FeedList";
 import { FollowButton } from "../components/FollowButton";
+import { ReportDialog } from "../components/ReportDialog";
+import { Menu, MenuItem } from "../components/ui/Menu";
 import { Avatar } from "../components/ui/Avatar";
 import { Button } from "../components/ui/Button";
 import { Dialog } from "../components/ui/Dialog";
@@ -13,6 +15,8 @@ import { BatteryBadge, EmptyState, SectionTitle } from "../components/ui/misc";
 import { PageSpinner } from "../components/ui/Spinner";
 import { api, errorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { timeAgo } from "../lib/format";
+import { usePresence } from "../lib/realtime";
 import { MOODS } from "../lib/meta";
 import { useProfile, useUserPosts } from "../lib/queries";
 import type { Mood, PersonSummary } from "../lib/types";
@@ -30,6 +34,8 @@ export function Profile() {
   const profile = useProfile(username);
   const posts = useUserPosts(username);
   const [connections, setConnections] = useState<"followers" | "following" | null>(null);
+  const [reporting, setReporting] = useState(false);
+  const presence = usePresence(profile.data?.user);
 
   if (profile.isPending) return <PageSpinner />;
   if (profile.isError) {
@@ -42,7 +48,7 @@ export function Profile() {
     );
   }
 
-  const { user, isMe, isFollowing, followsMe, stats } = profile.data;
+  const { user, isMe, isFollowing, followsMe, stats, canMessage, suspended } = profile.data;
   const h = hue(user.username);
   const canLetter = !isMe && user.lettersFrom !== "nobody" && (user.lettersFrom === "everyone" || followsMe);
 
@@ -74,12 +80,28 @@ export function Profile() {
                 </>
               ) : (
                 <>
+                  {canMessage ? (
+                    <Link to={`/messages?to=${user.username}`}>
+                      <Button variant="secondary">
+                        <MessageCircle className="size-4" /> Message
+                      </Button>
+                    </Link>
+                  ) : null}
                   {canLetter ? (
                     <Button variant="secondary" onClick={() => (me ? openLetter({ to: user.username }) : undefined)} disabled={!me}>
                       <Feather className="size-4" /> Letter
                     </Button>
                   ) : null}
                   <FollowButton key={String(isFollowing)} username={user.username} following={isFollowing} />
+                  {me ? (
+                    <Menu label="More options" trigger={<MoreHorizontal className="size-5" />}>
+                      {(close) => (
+                        <MenuItem onClick={() => (setReporting(true), close())}>
+                          <Flag className="size-4" /> Report @{user.username}
+                        </MenuItem>
+                      )}
+                    </Menu>
+                  ) : null}
                 </>
               )}
             </div>
@@ -90,7 +112,21 @@ export function Profile() {
               <h1 className="font-serif text-2xl font-semibold tracking-tight">{user.displayName}</h1>
               {followsMe && !isMe ? <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted">Follows you</span> : null}
             </div>
-            <p className="text-muted">@{user.username}</p>
+            <p className="flex flex-wrap items-center gap-x-2 text-muted">
+              @{user.username}
+              {!isMe && presence.online ? (
+                <span className="inline-flex items-center gap-1 text-xs">
+                  <span className="size-2 rounded-full bg-emerald-500" aria-hidden /> Active now
+                </span>
+              ) : !isMe && presence.lastSeenAt ? (
+                <span className="text-xs">· Active {timeAgo(presence.lastSeenAt)}</span>
+              ) : null}
+            </p>
+            {suspended ? (
+              <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-clay-soft px-2.5 py-1 text-xs font-medium text-clay">
+                <ShieldAlert className="size-3.5" aria-hidden /> Suspended account
+              </p>
+            ) : null}
             <div className="mt-3">
               <BatteryBadge battery={user.battery} withHint />
             </div>
@@ -137,6 +173,7 @@ export function Profile() {
         empty={defaultEmpty(isMe ? "Your page is still blank" : "Nothing shared yet", isMe ? "Your first post will appear here." : `${user.displayName} hasn't written anything public yet.`, "📝")}
       />
 
+      <ReportDialog target={reporting ? { targetType: "user", username: user.username } : null} onClose={() => setReporting(false)} />
       {isMe ? <ConnectionsDialog username={user.username} kind={connections} onClose={() => setConnections(null)} /> : null}
     </div>
   );

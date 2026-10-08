@@ -5,7 +5,9 @@ import { RouterProvider } from "react-router/dom";
 import { Toaster } from "sonner";
 import { ApiError } from "./lib/api";
 import { AuthProvider } from "./lib/auth";
+import { RealtimeProvider } from "./lib/realtime";
 import { ThemeProvider } from "./lib/theme";
+import { UsageProvider } from "./lib/usage";
 import { router } from "./router";
 import "./index.css";
 
@@ -24,7 +26,11 @@ createRoot(document.getElementById("root")!).render(
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <RouterProvider router={router} />
+          <RealtimeProvider>
+            <UsageProvider>
+              <RouterProvider router={router} />
+            </UsageProvider>
+          </RealtimeProvider>
           <Toaster
             position="bottom-center"
             offset={88}
