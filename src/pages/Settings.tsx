@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
-import { Camera, Hourglass, LogOut, Monitor, Moon, ShieldCheck, Sun } from "lucide-react";
+import { Camera, Hourglass, Monitor, Moon, ShieldCheck, Sun } from "lucide-react";
 import { type ReactNode, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -42,7 +42,7 @@ function useUpdateMe() {
 }
 
 export function Settings() {
-  const { me, signOut } = useAuth();
+  const { me } = useAuth();
   if (!me) return null;
   return (
     <div className="space-y-5">
@@ -51,11 +51,8 @@ export function Settings() {
       <PresenceSettings me={me} />
       <TimeSettings me={me} />
       <AppearanceSettings />
-      <Section title="Account" description={`Signed in as ${me.email}`}>
+      <Section title="Account" description={`Signed in as ${me.email}. Sign out from the menu next to your name.`}>
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={signOut}>
-            <LogOut className="size-4" /> Sign out
-          </Button>
           {me.role === "admin" ? (
             <Link to="/admin">
               <Button variant="secondary">

@@ -1,7 +1,8 @@
 import clsx from "clsx";
-import { Bell, Bookmark, Compass, Home, Mail, MessageCircle, Moon, PenLine, Settings, ShieldCheck, Sun, SunMoon, User, Wind } from "lucide-react";
+import { Bell, Bookmark, Compass, Home, LogOut, Mail, MessageCircle, Moon, MoreHorizontal, PenLine, Settings, ShieldCheck, Sun, SunMoon, User, Wind } from "lucide-react";
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
-import { Link, NavLink, Outlet, ScrollRestoration, useLocation } from "react-router";
+import { Link, NavLink, Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router";
+import { toast } from "sonner";
 import { useAuth } from "../lib/auth";
 import { useSummary } from "../lib/queries";
 import { type ThemeChoice, useTheme } from "../lib/theme";
@@ -15,6 +16,7 @@ import { Logo } from "./Logo";
 import { Avatar } from "./ui/Avatar";
 import { Button } from "./ui/Button";
 import { Dialog } from "./ui/Dialog";
+import { Menu, MenuItem } from "./ui/Menu";
 import { SuspendedBanner, UsageNudge } from "./Wellbeing";
 
 interface LetterDraft {
@@ -183,13 +185,16 @@ function Sidebar() {
           <ThemeCycle />
         </div>
         {me ? (
-          <Link to={`/u/${me.username}`} className="flex items-center gap-3 rounded-2xl px-2 py-2 hover:bg-surface-2">
-            <Avatar user={me} size="sm" showBattery />
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold">{me.displayName}</span>
-              <span className="block truncate text-xs text-muted">@{me.username}</span>
-            </span>
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link to={`/u/${me.username}`} className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-2 py-2 hover:bg-surface-2">
+              <Avatar user={me} size="sm" showBattery />
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold">{me.displayName}</span>
+                <span className="block truncate text-xs text-muted">@{me.username}</span>
+              </span>
+            </Link>
+            <AccountMenu direction="up" trigger={<MoreHorizontal className="size-5" />} />
+          </div>
         ) : null}
       </div>
     </aside>
@@ -231,9 +236,10 @@ function MobileTopBar() {
         <>
           <MobileLettersLink />
           <BatteryPicker compact />
-          <Link to={`/u/${me.username}`} aria-label="Your profile" className="ml-1 rounded-full">
-            <Avatar user={me} size="sm" />
-          </Link>
+          <AccountMenu
+            trigger={<Avatar user={me} size="sm" />}
+            triggerClassName="ml-1 rounded-full focus-visible:ring-2 focus-visible:ring-accent"
+          />
         </>
       ) : (
         <Link to="/login">
@@ -241,6 +247,38 @@ function MobileTopBar() {
         </Link>
       )}
     </header>
+  );
+}
+
+/** Account menu next to your name (sidebar) and on your avatar (mobile top bar): profile, settings, sign out. */
+function AccountMenu({ trigger, direction, triggerClassName }: { trigger: ReactNode; direction?: "up" | "down"; triggerClassName?: string }) {
+  const { me, signOut } = useAuth();
+  const navigate = useNavigate();
+  if (!me) return null;
+  return (
+    <Menu label={`Account menu for ${me.displayName}`} trigger={trigger} direction={direction} triggerClassName={triggerClassName}>
+      {(close) => (
+        <>
+          <MenuItem onClick={() => (close(), navigate(`/u/${me.username}`))}>
+            <User className="size-4" /> Your profile
+          </MenuItem>
+          <MenuItem onClick={() => (close(), navigate("/settings"))}>
+            <Settings className="size-4" /> Settings
+          </MenuItem>
+          <MenuItem
+            danger
+            onClick={() => {
+              close();
+              signOut();
+              navigate("/", { replace: true });
+              toast("Signed out. Come back whenever you like.");
+            }}
+          >
+            <LogOut className="size-4" /> Sign out
+          </MenuItem>
+        </>
+      )}
+    </Menu>
   );
 }
 

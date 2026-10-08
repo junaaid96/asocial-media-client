@@ -6,11 +6,16 @@ export function Menu({
   label,
   children,
   align = "right",
+  direction = "down",
+  triggerClassName,
 }: {
   trigger: ReactNode;
   label: string;
   children: (close: () => void) => ReactNode;
   align?: "left" | "right";
+  /** "up" opens above the trigger, for menus near the bottom of the screen. */
+  direction?: "down" | "up";
+  triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -37,7 +42,7 @@ export function Menu({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="rounded-full p-2 text-muted transition-colors hover:bg-surface-2 hover:text-ink"
+        className={triggerClassName ?? "rounded-full p-2 text-muted transition-colors hover:bg-surface-2 hover:text-ink"}
       >
         {trigger}
       </button>
@@ -45,7 +50,8 @@ export function Menu({
         <div
           role="menu"
           className={clsx(
-            "card absolute z-30 mt-1 min-w-44 animate-rise p-1.5",
+            "card absolute z-30 min-w-44 animate-rise p-1.5",
+            direction === "up" ? "bottom-full mb-1" : "mt-1",
             align === "right" ? "right-0" : "left-0",
           )}
         >
