@@ -46,6 +46,23 @@ interface Stats {
   series: { day: string; signups: number; posts: number; messages: number; active: number }[];
 }
 
+const EMPTY_TOTALS: Stats["totals"] = {
+  users: 0,
+  users_7d: 0,
+  suspended: 0,
+  admins: 0,
+  posts: 0,
+  posts_7d: 0,
+  hidden_posts: 0,
+  comments: 0,
+  messages: 0,
+  messages_7d: 0,
+  open_reports: 0,
+  reports: 0,
+  active_today: 0,
+  active_7d: 0,
+};
+
 interface AdminReport {
   id: string;
   targetType: ReportTarget["targetType"];
@@ -125,14 +142,14 @@ export function Admin() {
             )}
           >
             {t.label}
-            {t.key === "reports" && stats.data?.totals.open_reports ? (
+            {t.key === "reports" && stats.data?.totals?.open_reports ? (
               <span className="ml-1.5 rounded-full bg-clay px-1.5 text-[11px] font-semibold text-white">{stats.data.totals.open_reports}</span>
             ) : null}
           </button>
         ))}
       </div>
       <div role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${tab}`}>
-        {tab === "overview" ? <Overview stats={stats.data} /> : null}
+        {tab === "overview" ? <Overview stats={stats.data} failed={stats.isError} /> : null}
         {tab === "reports" ? <Reports /> : null}
         {tab === "users" ? <UsersPanel /> : null}
         {tab === "posts" ? <PostsPanel /> : null}
@@ -150,10 +167,12 @@ const SERIES = [
   { key: "signups", label: "Sign-ups" },
 ] as const;
 
-function Overview({ stats }: { stats: Stats | undefined }) {
+function Overview({ stats, failed }: { stats: Stats | undefined; failed?: boolean }) {
   const [metric, setMetric] = useState<(typeof SERIES)[number]["key"]>("active");
+  if (!stats && failed) return <p className="rounded-2xl bg-surface-2 p-4 text-sm text-muted">Stats aren't available right now. Try again in a moment.</p>;
   if (!stats) return <PageSpinner />;
-  const t = stats.totals;
+  const t = { ...EMPTY_TOTALS, ...stats.totals };
+  const series = Array.isArray(stats.series) ? stats.series : [];
   const cards: { label: string; value: number; hint?: string; icon: ReactNode; tab?: Tab }[] = [
     { label: "People", value: t.users, hint: `+${t.users_7d} this week`, icon: <Users className="size-4" /> },
     { label: "Active today", value: t.active_today, hint: `${t.active_7d} this week`, icon: <span aria-hidden>🌿</span> },
@@ -164,7 +183,7 @@ function Overview({ stats }: { stats: Stats | undefined }) {
     { label: "Suspended", value: t.suspended, icon: <UserX className="size-4" />, tab: "users" },
     { label: "Moderators", value: t.admins, icon: <ShieldCheck className="size-4" /> },
   ];
-  const max = Math.max(1, ...stats.series.map((d) => d[metric]));
+  const max = Math.max(1, ...series.map((d) => d[metric] ?? 0));
   const label = SERIES.find((s) => s.key === metric)!.label;
 
   return (
@@ -200,7 +219,7 @@ function Overview({ stats }: { stats: Stats | undefined }) {
           </div>
         </div>
         <div className="flex h-40 items-end gap-1.5" aria-hidden>
-          {stats.series.map((d) => (
+          {series.map((d) => (
             <div key={d.day} className="group flex h-full flex-1 flex-col justify-end" title={`${format(parseISO(d.day), "MMM d")}: ${d[metric]}`}>
               <div
                 className="min-h-[3px] rounded-t-md bg-accent/70 transition-all group-hover:bg-accent"
@@ -210,13 +229,13 @@ function Overview({ stats }: { stats: Stats | undefined }) {
           ))}
         </div>
         <div className="mt-1.5 flex justify-between text-[11px] text-muted" aria-hidden>
-          <span>{format(parseISO(stats.series[0]!.day), "MMM d")}</span>
+          <span>{series[0] ? format(parseISO(series[0].day), "MMM d") : ""}</span>
           <span>Today</span>
         </div>
         <table className="sr-only">
           <caption>{label} per day, last 14 days</caption>
           <tbody>
-            {stats.series.map((d) => (
+            {series.map((d) => (
               <tr key={d.day}>
                 <th scope="row">{d.day}</th>
                 <td>{d[metric]}</td>
@@ -516,7 +535,7 @@ function PostsPanel() {
                   @{post.author.username}
                 </Link>
                 {post.isAnonymous ? <Badge>posted anonymously</Badge> : null}
-                <Badge>{VISIBILITY[post.visibility].label}</Badge>
+                <Badge>{VISIBILITY[post.visibility]?.label ?? "Public"}</Badge>
                 {post.openReports ? <Badge tone="clay">{post.openReports} open reports</Badge> : null}
                 {post.hiddenAt ? <Badge tone="clay">hidden</Badge> : null}
                 <span className="ml-auto text-xs text-muted">{timeAgo(post.createdAt)}</span>

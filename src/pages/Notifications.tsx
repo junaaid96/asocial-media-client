@@ -79,7 +79,7 @@ export function Notifications() {
 function describe(n: Notification) {
   switch (n.type) {
     case "reaction":
-      return n.reaction ? `${REACTIONS[n.reaction].verb} your post` : "resonated with your post";
+      return n.reaction && REACTIONS[n.reaction] ? `${REACTIONS[n.reaction].verb} your post` : "resonated with your post";
     case "comment":
       return "replied to your post";
     case "follow":
@@ -89,12 +89,12 @@ function describe(n: Notification) {
     case "mention":
       return n.commentId ? "mentioned you in a reply" : "mentioned you in a post";
     case "comment_reaction":
-      return n.reaction ? `${REACTIONS[n.reaction].verb} your reply` : "resonated with your reply";
+      return n.reaction && REACTIONS[n.reaction] ? `${REACTIONS[n.reaction].verb} your reply` : "resonated with your reply";
   }
 }
 
 function NotificationIcon({ n }: { n: Notification }) {
-  if (n.type === "reaction" || n.type === "comment_reaction") return <span aria-hidden>{n.reaction ? REACTIONS[n.reaction].emoji : "🤍"}</span>;
+  if (n.type === "reaction" || n.type === "comment_reaction") return <span aria-hidden>{(n.reaction && REACTIONS[n.reaction]?.emoji) || "🤍"}</span>;
   if (n.type === "comment") return <MessageCircle className="size-3.5 text-accent" />;
   if (n.type === "follow") return <UserPlus className="size-3.5 text-accent" />;
   if (n.type === "mention") return <AtSign className="size-3.5 text-accent" />;

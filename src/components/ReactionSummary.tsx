@@ -34,7 +34,7 @@ export function ReactionSummary({
     };
   }, [open]);
 
-  if (total === null || total <= 0 || !counts) return null;
+  if (total == null || total <= 0 || !counts) return null;
   const kinds = REACTION_KEYS.filter((k) => counts[k]).sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0));
   const label = `${total} ${total === 1 ? "reaction" : "reactions"}: ${kinds.map((k) => `${counts[k]} ${REACTIONS[k].label}`).join(", ")}`;
 

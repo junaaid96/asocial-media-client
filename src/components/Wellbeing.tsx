@@ -9,15 +9,19 @@ const WARNED_KEY = "asocial.limitNudge";
 
 /** A gentle, once-a-day nudge when today's time passes the limit the person chose. */
 export function UsageNudge() {
-  const { today, dailyLimitMinutes } = useUsage();
+  const { available, today, dailyLimitMinutes } = useUsage();
   const { openBreathe } = useShell();
-  const reached = !!dailyLimitMinutes && today >= dailyLimitMinutes * 60;
+  const reached = available && !!dailyLimitMinutes && today >= dailyLimitMinutes * 60;
 
   useEffect(() => {
     if (!reached || !dailyLimitMinutes) return;
     const day = localDay();
-    if (localStorage.getItem(WARNED_KEY) === day) return;
-    localStorage.setItem(WARNED_KEY, day);
+    try {
+      if (localStorage.getItem(WARNED_KEY) === day) return;
+      localStorage.setItem(WARNED_KEY, day);
+    } catch {
+      // storage unavailable: still nudge, at worst more than once a day
+    }
     toast("You've reached your daily time", {
       description: `About ${formatDuration(today)} here today; you set ${formatDuration(dailyLimitMinutes * 60)}. Maybe a good moment to step away?`,
       duration: 15_000,
