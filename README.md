@@ -11,17 +11,19 @@ their time.
   read receipts, and a lined-paper reading view.
 - **Messages**: real-time 1:1 chat over WebSockets with a conversation list, unread counts, typing and online
   indicators, read receipts, persisted history with "load earlier", optimistic sends that retry safely, and
-  automatic reconnect with backoff. When the socket can't connect (e.g. a serverless API), it falls back to
-  polling. Who can message you follows the same setting as letters.
+  automatic reconnect with backoff. When the socket can't connect, it falls back to polling, and a slow safety
+  poll runs even while live. Who can message you follows the same setting as letters.
 - **Post privacy**: Public, Followers or Only me, chosen when writing or editing and enforced by the API.
 - **Rich text**: bold, italic, lists, links and code in posts, replies and messages (toolbar plus Ctrl/⌘+B, I, K,
-  E), with `@mention` autocomplete and clickable `#hashtags`. Text is stored as sanitised Markdown and rendered
-  into React elements, never as HTML.
+  E), `@mention` and `#hashtag` autocomplete, clickable `#hashtags`, and a Write/Preview toggle when writing a
+  post. Text is stored as sanitised Markdown and rendered into React elements, never as HTML.
 - **Reactions on replies** and a per-reaction breakdown behind every total.
 - **Reports and moderation**: report a person, post or message with a reason. Moderators get a dashboard
-  (`/admin`) with stats, a report queue, and tools to suspend accounts and hide posts.
-- **Time well spent**: active time today and this session, a seven-day chart, and an optional daily limit
-  with one gentle reminder. Daily totals are saved to your account.
+  (`/admin`) with stats, a report queue, tools to suspend accounts and hide posts, and an audit log. Reporters
+  hear back when their report is handled, and authors are told why a post was hidden.
+- **Time well spent**: a session timer always in view (next to Breathe; in the top bar on phones), today's
+  time and a seven-day chart in Settings, an optional daily limit with one gentle reminder, and an optional
+  session reminder every N minutes. Daily totals are saved to your account.
 - **Social battery**: show whether you're fully charged, half charged, low or recharging. Recharging hushes
   every notification badge.
 - **Gentle reactions, quiet counts**: *Felt this* 🤍, *Sending a hug* 🫂, *Insightful* 💡 and *Relate* 🌱
@@ -53,6 +55,7 @@ npm install
 cp .env.example .env   # VITE_API_URL=http://localhost:5000 (VITE_WS_URL is optional)
 npm run dev            # http://localhost:5173
 npm run build
+npm test               # unit tests (vitest)
 ```
 
 ## Deployment
@@ -60,14 +63,14 @@ npm run build
 Deployed on Vercel as a static Vite app (`vercel.json` adds the SPA fallback and long-term caching for hashed
 assets). Set `VITE_API_URL` to the API's URL in the Vercel project's Production environment.
 
-Real-time chat connects to `VITE_WS_URL`, or to `VITE_API_URL` with `ws(s)://` and `/ws` when it isn't set.
-WebSockets need the API on a long-running host (`npm start` on the server). On a serverless deployment chat
-still works through polling (every 5 seconds in an open conversation), just without live typing and presence:
+Real-time chat connects to `VITE_WS_URL`, or to `VITE_API_URL` with `ws(s)://` and `/ws` when it isn't set. The
+API serves that socket both locally and on Vercel Functions (which close sockets at their max duration; the app
+reconnects right away). Without a socket, chat still works through polling (every 5 seconds in an open
+conversation):
 
 - `VITE_WS_URL=` (empty) turns the socket off: polling only.
-- An API on `*.vercel.app` is detected automatically and never gets a socket attempt.
 - If the socket can't connect after 3 tries (or 8 after a working connection drops), the app stops retrying for
-  that page load and keeps polling quietly.
+  a while and keeps polling quietly.
 
 Features that need a newer API than the one deployed fail soft: time tracking hides itself if `/api/me/usage`
 is missing, and unknown values (visibility, reactions, stats) fall back to safe defaults instead of crashing.
