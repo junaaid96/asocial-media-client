@@ -50,3 +50,14 @@ describe("prompt navigation", () => {
     expect(shiftDay("2026-12-31", 1)).toBe("2027-01-01");
   });
 });
+
+describe("ably presence watch list", () => {
+  const partner = (n: number) => ({ userId: `u${n}`, username: `p${n}`, conversationId: `c${n}`, presence: `asocial:presence:u${n}` });
+  it("watches new partners only, most recent first, within the limit", async () => {
+    const { partnersToWatch } = await import("../lib/realtime");
+    const partners = [partner(1), partner(2), partner(3)];
+    expect(partnersToWatch(new Set(["u1"]), partners).map((p) => p.userId)).toEqual(["u2", "u3"]);
+    expect(partnersToWatch(new Set(["u9"]), partners, 2).map((p) => p.userId)).toEqual(["u1"]);
+    expect(partnersToWatch(new Set(["a", "b"]), partners, 2)).toEqual([]);
+  });
+});

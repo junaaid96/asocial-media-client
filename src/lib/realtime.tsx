@@ -1,12 +1,18 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { API_URL, tokenStore } from "./api";
+import { API_URL, api, tokenStore } from "./api";
 import { useAuth } from "./auth";
 import { type MessageCache, markRead, mergeMessages, receiveMessage } from "./chat";
 import { keys } from "./queries";
 import type { Message } from "./types";
 
-// Live chat events come over a WebSocket at <API>/ws (the API serves it on Vercel Functions too).
+// Live chat events, in order of preference:
+// 1. Ably (managed pub/sub). The API hands out short-lived, subscribe-only tokens at POST /realtime/token
+//    (ably-js renews them through authCallback); no Ably key ever reaches the browser.
+// 2. If Ably isn't configured on the API or can't be reached: a WebSocket at <API>/ws.
+// 3. If neither works: polling (the REST API is always the source of truth).
+//
+// WebSocket fallback details:
 // - VITE_WS_URL set to an empty string: polling only, no socket is ever opened.
 // - VITE_WS_URL unset: derived from VITE_API_URL.
 // - If the socket never manages to connect, we stop trying after a few attempts and keep polling.
@@ -73,29 +79,214 @@ type ServerEvent =
   // The server may have missed events for us (e.g. its listener reconnected): refetch.
   | { type: "resync" };
 
+type Transport = "ably" | "ws" | null;
+
+/** Turns server events into cache updates. Shared by the Ably and WebSocket transports. */
+function eventHandler(
+  queryClient: ReturnType<typeof useQueryClient>,
+  username: string,
+  setTyping: (fn: (t: Record<string, number>) => Record<string, number>) => void,
+  setPresence: (fn: (p: RealtimeValue["presence"]) => RealtimeValue["presence"]) => void,
+) {
+  const catchUp = () => {
+    void queryClient.invalidateQueries({ queryKey: keys.conversations });
+    void queryClient.invalidateQueries({ queryKey: ["messages"] });
+    void queryClient.invalidateQueries({ queryKey: ["summary"] });
+  };
+  const handle = (event: ServerEvent) => {
+    switch (event.type) {
+      case "resync":
+        catchUp();
+        break;
+      case "message":
+        receiveMessage(queryClient, event.conversationId, event.message, username);
+        if (event.message.sender !== username) {
+          setTyping((t) => ({ ...t, [event.conversationId]: 0 }));
+          void queryClient.invalidateQueries({ queryKey: ["summary"] });
+        }
+        break;
+      case "read":
+        markRead(event.conversationId, event.readerUsername, event.readAt);
+        queryClient.setQueryData<MessageCache>(keys.messages(event.conversationId), (cache) => (cache ? mergeMessages(cache, []) : cache));
+        break;
+      case "typing":
+        setTyping((t) => ({ ...t, [event.conversationId]: event.typing ? Date.now() + TYPING_TTL : 0 }));
+        break;
+      case "presence":
+        setPresence((p) => ({ ...p, [event.username]: { online: event.online, lastSeenAt: event.lastSeenAt } }));
+        break;
+    }
+  };
+  return { handle, catchUp };
+}
+
+/** What POST /realtime/token returns. */
+export interface RealtimeToken {
+  tokenRequest: import("ably").TokenRequest;
+  channels: {
+    inbox: string;
+    presence: string;
+    partners: { userId: string; username: string; conversationId: string; presence: string }[];
+  };
+}
+
+/** How many conversation partners' presence channels one connection watches (most recent first). */
+export const MAX_WATCHED_PARTNERS = 50;
+
+/** Partners we aren't watching yet, most recent first, within the watch limit. */
+export function partnersToWatch(watched: ReadonlySet<string>, partners: RealtimeToken["channels"]["partners"], limit = MAX_WATCHED_PARTNERS) {
+  const room = Math.max(0, limit - watched.size);
+  return partners.filter((p) => !watched.has(p.userId)).slice(0, room);
+}
+
 interface RealtimeValue {
   status: Status;
+  /** Which live transport is in use, if any. */
+  transport: Transport;
   presence: Record<string, { online: boolean; lastSeenAt: string | null }>;
   typing: Record<string, number>;
   sendTyping: (conversationId: string, typing: boolean) => void;
 }
 
-const RealtimeContext = createContext<RealtimeValue>({ status: WS_URL ? "offline" : "polling", presence: {}, typing: {}, sendTyping: () => undefined });
+const RealtimeContext = createContext<RealtimeValue>({ status: "offline", transport: null, presence: {}, typing: {}, sendTyping: () => undefined });
 
 const TYPING_TTL = 6_000;
 
 export function RealtimeProvider({ children }: { children: ReactNode }) {
   const { me } = useAuth();
   const queryClient = useQueryClient();
-  const [status, setStatus] = useState<Status>(WS_URL ? "offline" : "polling");
+  const [status, setStatus] = useState<Status>("offline");
+  const [transport, setTransport] = useState<Transport>(null);
   const [presence, setPresence] = useState<RealtimeValue["presence"]>({});
   const [typing, setTyping] = useState<Record<string, number>>({});
   const socketRef = useRef<WebSocket | null>(null);
+  // The user for whom Ably turned out to be unavailable: they get the WebSocket fallback.
+  const [wsFallbackFor, setWsFallbackFor] = useState<string | null>(null);
   const username = me?.username;
 
+  // 1. Ably.
+  useEffect(() => {
+    if (!username) return;
+    let stopped = false;
+    let realtime: import("ably").Realtime | undefined;
+    const { handle, catchUp } = eventHandler(queryClient, username, setTyping, setPresence);
+    const watched = new Set<string>();
+    const conversations = new Set<string>();
+    let refreshing = false;
+
+    const fallBack = () => {
+      if (stopped) return;
+      stopped = true;
+      realtime?.close();
+      setTransport(null);
+      setWsFallbackFor(username);
+    };
+    const fetchToken = () => api<RealtimeToken>("/realtime/token", { method: "POST" });
+
+    const watchPartners = (channels: RealtimeToken["channels"]) => {
+      for (const p of channels.partners) conversations.add(p.conversationId);
+      if (!realtime) return;
+      for (const partner of partnersToWatch(watched, channels.partners)) {
+        watched.add(partner.userId);
+        const channel = realtime.channels.get(partner.presence);
+        const setOnline = (online: boolean) =>
+          setPresence((p) => ({ ...p, [partner.username]: { online, lastSeenAt: online ? null : new Date().toISOString() } }));
+        // Only Ably presence turns someone online here; if they're absent we keep what the API said
+        // (they may be using the app over polling).
+        void channel.presence.subscribe((member) => {
+          if (member.action === "leave") {
+            void channel.presence.get().then((members) => members.length === 0 && setOnline(false), () => undefined);
+          } else {
+            setOnline(true);
+          }
+        }).catch(() => undefined);
+        void channel.presence.get().then((members) => members.length > 0 && setOnline(true), () => undefined);
+      }
+    };
+
+    // A message in a conversation we didn't know about: fetch a fresh token so we can see that person's presence.
+    const refreshCapabilities = () => {
+      if (refreshing || !realtime) return;
+      refreshing = true;
+      void realtime.auth.authorize().catch(() => undefined).finally(() => (refreshing = false));
+    };
+
+    void (async () => {
+      setStatus("connecting");
+      let first: RealtimeToken;
+      let Ably: typeof import("ably");
+      try {
+        [first, Ably] = await Promise.all([fetchToken(), import("ably")]);
+      } catch {
+        // Not configured on this API (503), an older API (404), or offline: use the fallback.
+        return fallBack();
+      }
+      if (stopped) return;
+      let pending: RealtimeToken | null = first;
+      let everConnected = false;
+      realtime = new Ably.Realtime({
+        authCallback: (_params, callback) => {
+          const use = (token: RealtimeToken) => {
+            watchPartners(token.channels);
+            callback(null, token.tokenRequest);
+          };
+          if (pending) {
+            const token = pending;
+            pending = null;
+            return use(token);
+          }
+          fetchToken().then(use, (error: unknown) => callback(error instanceof Error ? error.message : String(error), null));
+        },
+        closeOnUnload: true,
+      });
+      realtime.connection.on((change) => {
+        if (stopped) return;
+        switch (change.current) {
+          case "connected":
+            everConnected = true;
+            setTransport("ably");
+            setStatus("open");
+            catchUp();
+            break;
+          case "connecting":
+          case "disconnected":
+            setStatus(everConnected ? "offline" : "connecting");
+            break;
+          case "suspended":
+          case "failed":
+            // Never got through (blocked network, bad config): try the WebSocket fallback.
+            // After a working connection, Ably keeps retrying on its own; poll meanwhile.
+            if (!everConnected) return fallBack();
+            setStatus("offline");
+            break;
+        }
+      });
+      const inbox = realtime.channels.get(first.channels.inbox);
+      void inbox
+        .subscribe((message) => {
+          const event = message.data as ServerEvent;
+          if (event?.type === "message" && !conversations.has(event.conversationId)) {
+            conversations.add(event.conversationId);
+            refreshCapabilities();
+          }
+          if (event?.type) handle(event);
+        })
+        .catch(() => undefined);
+      void realtime.channels.get(first.channels.presence).presence.enter().catch(() => undefined);
+    })();
+
+    return () => {
+      stopped = true;
+      realtime?.close();
+      setTransport(null);
+      setStatus("offline");
+    };
+  }, [username, queryClient]);
+
+  // 2. WebSocket fallback, only when Ably is unavailable.
   useEffect(() => {
     const url = WS_URL;
-    if (!username) return;
+    if (!username || wsFallbackFor !== username) return;
     if (!url || typeof WebSocket === "undefined" || recentlyGaveUp()) {
       setStatus("polling");
       return;
@@ -107,43 +298,18 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let pingTimer: ReturnType<typeof setInterval> | undefined;
 
-    // Catch up on anything that happened while we weren't listening.
-    const catchUp = () => {
-      void queryClient.invalidateQueries({ queryKey: keys.conversations });
-      void queryClient.invalidateQueries({ queryKey: ["messages"] });
-      void queryClient.invalidateQueries({ queryKey: ["summary"] });
-    };
-
+    const { handle: handleShared, catchUp } = eventHandler(queryClient, username, setTyping, setPresence);
     const handle = (event: ServerEvent) => {
-      switch (event.type) {
-        case "ready":
-          attempt = 0;
-          everReady = true;
-          writeFailures(0);
-          setStatus("open");
-          catchUp();
-          break;
-        case "resync":
-          catchUp();
-          break;
-        case "message":
-          receiveMessage(queryClient, event.conversationId, event.message, username);
-          if (event.message.sender !== username) {
-            setTyping((t) => ({ ...t, [event.conversationId]: 0 }));
-            void queryClient.invalidateQueries({ queryKey: ["summary"] });
-          }
-          break;
-        case "read":
-          markRead(event.conversationId, event.readerUsername, event.readAt);
-          queryClient.setQueryData<MessageCache>(keys.messages(event.conversationId), (cache) => (cache ? mergeMessages(cache, []) : cache));
-          break;
-        case "typing":
-          setTyping((t) => ({ ...t, [event.conversationId]: event.typing ? Date.now() + TYPING_TTL : 0 }));
-          break;
-        case "presence":
-          setPresence((p) => ({ ...p, [event.username]: { online: event.online, lastSeenAt: event.lastSeenAt } }));
-          break;
+      if (event.type === "ready") {
+        attempt = 0;
+        everReady = true;
+        writeFailures(0);
+        setTransport("ws");
+        setStatus("open");
+        catchUp();
+        return;
       }
+      handleShared(event);
     };
 
     const connect = () => {
@@ -224,9 +390,10 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       document.removeEventListener("visibilitychange", onVisible);
       socketRef.current?.close(1000, "bye");
       socketRef.current = null;
+      setTransport(null);
       setStatus("offline");
     };
-  }, [username, queryClient]);
+  }, [username, queryClient, wsFallbackFor]);
 
   // Expire stale typing indicators (e.g. if the "stopped typing" event never arrives).
   useEffect(() => {
@@ -238,10 +405,15 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
 
   const sendTyping = useCallback((conversationId: string, isTyping: boolean) => {
     const socket = socketRef.current;
-    if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "typing", conversationId, typing: isTyping }));
+    if (socket?.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: "typing", conversationId, typing: isTyping }));
+      return;
+    }
+    // Ably tokens are subscribe-only, so typing goes through the API, which relays it.
+    void api(`/conversations/${conversationId}/typing`, { method: "POST", body: { typing: isTyping } }).catch(() => undefined);
   }, []);
 
-  const value = useMemo(() => ({ status, presence, typing, sendTyping }), [status, presence, typing, sendTyping]);
+  const value = useMemo(() => ({ status, transport, presence, typing, sendTyping }), [status, transport, presence, typing, sendTyping]);
   return <RealtimeContext.Provider value={value}>{children}</RealtimeContext.Provider>;
 }
 
