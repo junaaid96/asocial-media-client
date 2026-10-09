@@ -46,7 +46,7 @@ export function PromptCard() {
       <p className="mt-2.5 font-serif text-lg leading-snug">{prompt.data.text}</p>
       <div className="mt-4 flex items-center justify-between gap-3 text-sm">
         <Link to={`/prompt/${prompt.data.date}`} className="text-muted hover:text-ink">
-          {prompt.data.answers ? `${prompt.data.answers} ${prompt.data.answers === 1 ? "answer" : "answers"}` : "No answers yet"}
+          {prompt.data.answers ? `${prompt.data.answers} public ${prompt.data.answers === 1 ? "answer" : "answers"}` : "No public answers yet"}
         </Link>
         <Link to={me ? "/?answer=1" : "/join"} className="inline-flex items-center gap-1 font-medium text-accent hover:underline">
           Write yours <ArrowRight className="size-4" />

@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
-import { Camera, Hourglass, Monitor, Moon, ShieldCheck, Sun } from "lucide-react";
-import { type ReactNode, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Camera, Hourglass, Monitor, Moon, ShieldCheck, Sun, Timer } from "lucide-react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { PageHeader } from "../components/AppShell";
 import { useSetBattery } from "../components/BatteryPicker";
@@ -44,6 +44,13 @@ function useUpdateMe() {
 export function Settings() {
   const { me } = useAuth();
   const usage = useUsage();
+  const { hash } = useLocation();
+  // Links like /settings#time (from the session timer) land on that section.
+  useEffect(() => {
+    if (!hash) return;
+    const el = document.getElementById(hash.slice(1));
+    el?.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }, [hash, usage.available]);
   if (!me) return null;
   return (
     <div className="space-y-5">
@@ -337,6 +344,7 @@ function DeleteAccount() {
 }
 
 const LIMITS = [null, 15, 30, 45, 60, 90, 120, 180] as const;
+const REMINDERS = [null, 10, 15, 20, 30, 45, 60, 90] as const;
 
 function lastDays(days: UsageDay[], today: number) {
   const map = new Map(days.map((d) => [d.day, d.seconds]));
@@ -439,6 +447,36 @@ function TimeSettings({ me }: { me: Me }) {
           ))}
         </select>
       </div>
+
+      {me.sessionReminderMinutes !== undefined ? (
+      <div className="mt-5">
+        <label className="label flex items-center gap-1.5" htmlFor="session-reminder">
+          <Timer className="size-4 text-muted" aria-hidden /> Session reminder
+        </label>
+        <p className="mb-2 text-sm text-muted">A quiet note each time this session reaches the interval you pick. Your session timer sits next to Breathe.</p>
+        <select
+          id="session-reminder"
+          value={me.sessionReminderMinutes ?? ""}
+          onChange={(e) => {
+            const sessionReminderMinutes = e.target.value ? Number(e.target.value) : null;
+            update.mutate(
+              { sessionReminderMinutes },
+              {
+                onSuccess: () =>
+                  toast(sessionReminderMinutes ? `We'll remind you every ${formatDuration(sessionReminderMinutes * 60)}` : "Session reminders turned off"),
+              },
+            );
+          }}
+          className="field w-auto pr-8"
+        >
+          {REMINDERS.map((value) => (
+            <option key={value ?? "off"} value={value ?? ""}>
+              {value ? `Every ${formatDuration(value * 60)}` : "Off"}
+            </option>
+          ))}
+        </select>
+      </div>
+      ) : null}
     </Section>
   );
 }

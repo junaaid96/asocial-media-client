@@ -65,9 +65,19 @@ interface UsageValue {
   sessionStartedAt: number | null;
   days: UsageDay[];
   dailyLimitMinutes: number | null;
+  /** Minutes of active use in this session before a gentle reminder; null = off. */
+  sessionReminderMinutes: number | null;
 }
 
-const UsageContext = createContext<UsageValue>({ available: false, today: 0, session: 0, sessionStartedAt: null, days: [], dailyLimitMinutes: null });
+const UsageContext = createContext<UsageValue>({
+  available: false,
+  today: 0,
+  session: 0,
+  sessionStartedAt: null,
+  days: [],
+  dailyLimitMinutes: null,
+  sessionReminderMinutes: null,
+});
 
 export const usageKey = ["usage"] as const;
 
@@ -158,13 +168,14 @@ export function UsageProvider({ children }: { children: ReactNode }) {
     }, TICK * 1000);
 
     let flushing = false;
-    const flush = async () => {
+    // keepalive: when the tab is being hidden or closed, let the last few seconds still arrive.
+    const flush = async (keepalive = false) => {
       const seconds = Math.min(120, pendingRef.current);
       if (flushing || seconds <= 0) return;
       flushing = true;
       try {
         const today = localDay();
-        const res = await api<{ counted?: boolean; today?: number } | undefined>("/me/usage", { method: "POST", body: { day: today, seconds } });
+        const res = await api<{ counted?: boolean; today?: number } | undefined>("/me/usage", { method: "POST", body: { day: today, seconds }, keepalive });
         if (res?.counted) {
           pendingRef.current = Math.max(0, pendingRef.current - seconds);
           setPending(pendingRef.current);
@@ -181,14 +192,19 @@ export function UsageProvider({ children }: { children: ReactNode }) {
         flushing = false;
       }
     };
-    const flushTimer = setInterval(flush, FLUSH_EVERY_MS);
-    const onHide = () => document.visibilityState === "hidden" && void flush();
+    const flushTimer = setInterval(() => void flush(), FLUSH_EVERY_MS);
+    // visibilitychange→hidden is the last event mobile browsers reliably fire; pagehide covers
+    // the rest (bfcache, closing a tab). Avoid unload/beforeunload, which break the bfcache.
+    const onHide = () => document.visibilityState === "hidden" && void flush(true);
+    const onPageHide = () => void flush(true);
     document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", onPageHide);
 
     return () => {
       clearInterval(tick);
       clearInterval(flushTimer);
       document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", onPageHide);
       for (const e of events) window.removeEventListener(e, onActivity);
     };
   }, [me?.username, queryClient, unsupported, setUnsupported]);
@@ -203,6 +219,7 @@ export function UsageProvider({ children }: { children: ReactNode }) {
       sessionStartedAt: session?.startedAt ?? null,
       days,
       dailyLimitMinutes: me?.dailyLimitMinutes ?? usage.data?.dailyLimitMinutes ?? null,
+      sessionReminderMinutes: me?.sessionReminderMinutes ?? null,
     };
   }, [usage.data, day, pending, session, me, unsupported]);
 
@@ -211,6 +228,19 @@ export function UsageProvider({ children }: { children: ReactNode }) {
 
 export function useUsage() {
   return useContext(UsageContext);
+}
+
+/** Compact clock for the session timer: "4 min", "1:05 h". */
+export function formatClock(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")} h`;
+}
+
+/** The next reminder threshold (in seconds) already passed in this session, or 0. */
+export function reminderStep(sessionSeconds: number, everyMinutes: number | null) {
+  if (!everyMinutes || everyMinutes <= 0) return 0;
+  return Math.floor(sessionSeconds / (everyMinutes * 60));
 }
 
 export function formatDuration(seconds: number) {

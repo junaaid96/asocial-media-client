@@ -17,12 +17,13 @@ import { api, errorMessage } from "../lib/api";
 import { fullDate, timeAgo } from "../lib/format";
 import type { PublicUser, ReportReason, ReportTarget, Visibility } from "../lib/types";
 
-type Tab = "overview" | "reports" | "users" | "posts";
+type Tab = "overview" | "reports" | "users" | "posts" | "log";
 const TABS: { key: Tab; label: string }[] = [
   { key: "overview", label: "Overview" },
   { key: "reports", label: "Reports" },
   { key: "users", label: "People" },
   { key: "posts", label: "Posts" },
+  { key: "log", label: "Audit log" },
 ];
 
 interface Stats {
@@ -153,6 +154,7 @@ export function Admin() {
         {tab === "reports" ? <Reports /> : null}
         {tab === "users" ? <UsersPanel /> : null}
         {tab === "posts" ? <PostsPanel /> : null}
+        {tab === "log" ? <ActionLog /> : null}
       </div>
     </div>
   );
@@ -586,6 +588,78 @@ function PostsPanel() {
 }
 
 // --- Bits ----------------------------------------------------------------------
+
+interface ModerationAction {
+  id: string;
+  action: "suspend_user" | "unsuspend_user" | "hide_post" | "unhide_post" | "resolve_report" | "dismiss_report";
+  note: string | null;
+  createdAt: string;
+  postId: string | null;
+  reportId: string | null;
+  admin: string | null;
+  target: string | null;
+}
+
+const ACTION_LABEL: Record<ModerationAction["action"], string> = {
+  suspend_user: "suspended",
+  unsuspend_user: "lifted the suspension of",
+  hide_post: "hid a post by",
+  unhide_post: "restored a post by",
+  resolve_report: "resolved a report about",
+  dismiss_report: "dismissed a report about",
+};
+
+/** Every moderator decision, newest first, so choices can be reviewed later. */
+function ActionLog() {
+  const log = useQuery({ queryKey: ["admin", "actions"], queryFn: () => api<{ items: ModerationAction[] }>("/admin/actions").then((r) => r.items) });
+  if (log.isPending) return <PageSpinner />;
+  if (log.isError)
+    return (
+      <div className="card">
+        <EmptyState icon="📜" title="The audit log isn't available">
+          This server doesn't keep a moderation log yet.
+        </EmptyState>
+      </div>
+    );
+  if (!log.data.length)
+    return (
+      <div className="card">
+        <EmptyState icon="📜" title="No decisions yet">
+          Hiding, restoring, suspending and closing reports will be recorded here.
+        </EmptyState>
+      </div>
+    );
+  return (
+    <ol className="card divide-y divide-line overflow-hidden" aria-label="Moderation decisions">
+      {log.data.map((entry) => (
+        <li key={entry.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 px-4 py-3 text-sm sm:px-5">
+          <span>
+            <span className="font-semibold">{entry.admin ? `@${entry.admin}` : "A former admin"}</span> {ACTION_LABEL[entry.action] ?? entry.action}{" "}
+            {entry.target ? (
+              <Link to={`/u/${entry.target}`} className="font-medium text-accent hover:underline">
+                @{entry.target}
+              </Link>
+            ) : (
+              <span className="text-muted">a deleted account</span>
+            )}
+            {entry.postId && (entry.action === "hide_post" || entry.action === "unhide_post") ? (
+              <>
+                {" · "}
+                <Link to={`/post/${entry.postId}`} className="text-accent hover:underline">
+                  view post
+                </Link>
+              </>
+            ) : null}
+          </span>
+          {entry.note ? <span className="text-muted">“{entry.note}”</span> : null}
+          <time dateTime={entry.createdAt} title={fullDate(entry.createdAt)} className="ml-auto text-xs text-muted">
+            {timeAgo(entry.createdAt)}
+          </time>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 function Badge({ children, tone = "muted" }: { children: ReactNode; tone?: "muted" | "clay" | "accent" }) {
   return (

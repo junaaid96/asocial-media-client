@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
-import { AtSign, Mail, MessageCircle, Moon, UserPlus } from "lucide-react";
+import { AtSign, Mail, MessageCircle, Moon, ShieldCheck, UserPlus } from "lucide-react";
 import { useEffect } from "react";
 import { Link } from "react-router";
 import { PageHeader } from "../components/AppShell";
@@ -45,7 +45,12 @@ export function Notifications() {
         </div>
       ) : (
         <ul className="card divide-y divide-line overflow-hidden">
-          {list.data.map((n) => (
+          {list.data.map((n) =>
+            isSystem(n) ? (
+              <li key={n.id}>
+                <SystemNotice n={n} />
+              </li>
+            ) : (
             <li key={n.id}>
               <Link
                 to={n.type === "letter" ? `/letters/${n.letterId}` : n.type === "follow" && n.actor ? `/u/${n.actor.username}` : `/post/${n.postId}`}
@@ -69,10 +74,42 @@ export function Notifications() {
                 {!n.read ? <span className="mt-2 size-2 shrink-0 rounded-full bg-clay" aria-label="Unread" /> : null}
               </Link>
             </li>
-          ))}
+            ),
+          )}
         </ul>
       )}
     </div>
+  );
+}
+
+const isSystem = (n: Notification) => n.type === "report_update" || n.type === "moderation";
+
+/** Notices from the moderators: report outcomes and decisions about your posts. */
+function SystemNotice({ n }: { n: Notification }) {
+  const content = (
+    <>
+      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-soft text-accent-strong" aria-hidden>
+        <ShieldCheck className="size-5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[15px] leading-snug">
+          <span className="font-semibold">aSocial moderators</span>{" "}
+          {n.type === "report_update" ? "reviewed your report" : "about your post"}
+        </p>
+        {n.body ? <p className="mt-1 text-sm text-ink-soft">{n.body}</p> : null}
+        {n.postExcerpt ? <p className="mt-1 line-clamp-2 text-sm text-muted">“{n.postExcerpt}”</p> : null}
+        <p className="mt-1 text-xs text-muted">{timeAgo(n.createdAt)}</p>
+      </div>
+      {!n.read ? <span className="mt-2 size-2 shrink-0 rounded-full bg-clay" aria-label="Unread" /> : null}
+    </>
+  );
+  const className = clsx("flex gap-3.5 px-4 py-4 sm:px-5", !n.read && "bg-accent-soft/40");
+  return n.type === "moderation" && n.postId ? (
+    <Link to={`/post/${n.postId}`} className={clsx(className, "transition-colors hover:bg-surface-2")}>
+      {content}
+    </Link>
+  ) : (
+    <div className={className}>{content}</div>
   );
 }
 
@@ -90,6 +127,8 @@ function describe(n: Notification) {
       return n.commentId ? "mentioned you in a reply" : "mentioned you in a post";
     case "comment_reaction":
       return n.reaction && REACTIONS[n.reaction] ? `${REACTIONS[n.reaction].verb} your reply` : "resonated with your reply";
+    default:
+      return "";
   }
 }
 

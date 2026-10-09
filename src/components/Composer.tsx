@@ -107,6 +107,7 @@ export function Composer({ answeringPrompt = false, onPosted, autoFocus }: { ans
             autoFocus={autoFocus}
             rows={expanded ? 4 : 1}
             toolbar={expanded}
+            preview
             placeholder={forPrompt ? "Take your time…" : "What's on your mind, quietly?"}
             className="w-full resize-none bg-transparent pt-2 text-[17px] leading-relaxed outline-none placeholder:text-muted"
           />

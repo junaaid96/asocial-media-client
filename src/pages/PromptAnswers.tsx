@@ -1,10 +1,15 @@
-import { format, parseISO } from "date-fns";
-import { Sparkles } from "lucide-react";
+import { addDays, format, parseISO } from "date-fns";
+import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { Link, useParams } from "react-router";
 import { FeedList, defaultEmpty } from "../components/FeedList";
 import { EmptyState } from "../components/ui/misc";
 import { useAuth } from "../lib/auth";
 import { usePrompt, usePromptAnswers, usePromptOn } from "../lib/queries";
+
+/** The day before/after a YYYY-MM-DD date (exported for tests). */
+export function shiftDay(date: string, days: number) {
+  return format(addDays(parseISO(date), days), "yyyy-MM-dd");
+}
 
 export function PromptAnswers() {
   const date = useParams().date ?? "";
@@ -44,6 +49,18 @@ export function PromptAnswers() {
           ) : null}
         </div>
       </section>
+      {/^\d{4}-\d{2}-\d{2}$/.test(date) ? (
+        <nav aria-label="Other prompts" className="mb-5 flex items-center justify-between gap-2 text-sm">
+          <Link to={`/prompt/${shiftDay(date, -1)}`} className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-muted hover:bg-surface-2 hover:text-ink">
+            <ChevronLeft className="size-4" aria-hidden /> Previous day's prompt
+          </Link>
+          {!isToday && today.data && date < today.data.date ? (
+            <Link to={`/prompt/${shiftDay(date, 1)}`} className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-muted hover:bg-surface-2 hover:text-ink">
+              Next day's prompt <ChevronRight className="size-4" aria-hidden />
+            </Link>
+          ) : null}
+        </nav>
+      ) : null}
       <FeedList query={answers} empty={defaultEmpty("No answers here yet", "When people answer this prompt, their words gather here.", "✨")} />
     </div>
   );

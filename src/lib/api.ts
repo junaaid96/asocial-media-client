@@ -32,7 +32,10 @@ export class ApiError extends Error {
 /** Fired when the API rejects our token so the app can sign out gracefully. */
 export const SESSION_EXPIRED = "asocial:session-expired";
 
-export async function api<T>(path: string, init: { method?: string; body?: unknown; raw?: Blob; query?: Record<string, string | undefined> } = {}): Promise<T> {
+export async function api<T>(
+  path: string,
+  init: { method?: string; body?: unknown; raw?: Blob; query?: Record<string, string | undefined>; keepalive?: boolean } = {},
+): Promise<T> {
   const url = new URL(`${API_URL}/api${path}`);
   for (const [key, value] of Object.entries(init.query ?? {})) if (value) url.searchParams.set(key, value);
 
@@ -48,6 +51,8 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
       method: init.method ?? "GET",
       headers,
       body: init.raw ?? (init.body === undefined ? undefined : JSON.stringify(init.body)),
+      // Lets a small request finish even if the page is being hidden or closed.
+      keepalive: init.keepalive,
     });
   } catch {
     throw new ApiError(0, "We couldn't reach aSocial. Check your connection and try again.");

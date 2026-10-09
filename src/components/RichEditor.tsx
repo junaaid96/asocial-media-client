@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { Bold, Code, Italic, Link2, List, ListOrdered } from "lucide-react";
+import { Bold, Code, Eye, Hash, Italic, Link2, List, ListOrdered, PenLine } from "lucide-react";
 import { type KeyboardEvent, type ReactNode, type TextareaHTMLAttributes, useEffect, useId, useRef, useState } from "react";
 import { api } from "../lib/api";
 import type { PublicUser } from "../lib/types";
+import { RichText } from "./RichText";
 import { Avatar } from "./ui/Avatar";
 
 type Format = "bold" | "italic" | "code" | "link" | "ul" | "ol";
@@ -56,6 +57,19 @@ function applyFormat(value: string, start: number, end: number, format: Format) 
 }
 
 const MENTION_AT_CARET = /(^|[\s(])@([a-zA-Z0-9_]{1,24})$/;
+const TAG_AT_CARET = /(^|[\s(])#([a-zA-Z0-9_]{1,50})$/;
+
+type Lookup = { kind: "user" | "tag"; q: string };
+type Suggestion = { kind: "user"; user: PublicUser } | { kind: "tag"; tag: string; posts: number };
+
+/** What's being typed at the caret: an @mention or a #hashtag (exported for tests). */
+export function lookupAt(text: string, caret: number): Lookup | null {
+  const before = text.slice(0, caret);
+  const mention = MENTION_AT_CARET.exec(before);
+  if (mention) return { kind: "user", q: mention[2]!.toLowerCase() };
+  const tag = TAG_AT_CARET.exec(before);
+  return tag ? { kind: "tag", q: tag[2]!.toLowerCase() } : null;
+}
 
 interface Props extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "value" | "onChange"> {
   value: string;
@@ -64,16 +78,20 @@ interface Props extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "value
   onSubmit?: () => void;
   toolbar?: boolean;
   toolbarEnd?: ReactNode;
+  /** Adds a Write/Preview toggle to the toolbar. */
+  preview?: boolean;
   label: string;
   wrapperClassName?: string;
 }
 
-/** A textarea with Markdown formatting (toolbar and shortcuts) and @mention autocomplete. */
-export function RichEditor({ value, onChange, onSubmit, toolbar = false, toolbarEnd, label, className, wrapperClassName, ...props }: Props) {
+/** A textarea with Markdown formatting (toolbar and shortcuts), @mention and #hashtag autocomplete, and an optional preview. */
+export function RichEditor({ value, onChange, onSubmit, toolbar = false, toolbarEnd, preview = false, label, className, wrapperClassName, ...props }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const listId = useId();
-  const [query, setQuery] = useState<string | null>(null);
+  const previewId = useId();
+  const [query, setQuery] = useState<Lookup | null>(null);
   const [active, setActive] = useState(0);
+  const [previewing, setPreviewing] = useState(false);
   const pendingSelection = useRef<[number, number] | null>(null);
 
   useEffect(() => {
@@ -84,17 +102,23 @@ export function RichEditor({ value, onChange, onSubmit, toolbar = false, toolbar
   }, [value]);
 
   const suggestions = useQuery({
-    queryKey: ["user-lookup", query],
-    queryFn: () => api<{ items: PublicUser[] }>("/users/lookup", { query: { q: query ?? "" } }).then((r) => r.items),
+    queryKey: ["lookup", query?.kind, query?.q],
+    queryFn: async (): Promise<Suggestion[]> => {
+      if (query?.kind === "tag") {
+        const res = await api<{ items: { tag: string; posts: number }[] }>("/tags/lookup", { query: { q: query.q } }).catch(() => ({ items: [] }));
+        return res.items.map((t) => ({ kind: "tag", ...t }));
+      }
+      const res = await api<{ items: PublicUser[] }>("/users/lookup", { query: { q: query?.q ?? "" } });
+      return res.items.map((user) => ({ kind: "user", user }));
+    },
     enabled: !!query,
     staleTime: 60_000,
   });
   const options = query ? (suggestions.data ?? []) : [];
-  const open = options.length > 0;
+  const open = options.length > 0 && !previewing;
 
   const detectMention = (text: string, caret: number) => {
-    const match = MENTION_AT_CARET.exec(text.slice(0, caret));
-    setQuery(match ? match[2]!.toLowerCase() : null);
+    setQuery(lookupAt(text, caret));
     setActive(0);
   };
 
@@ -107,11 +131,14 @@ export function RichEditor({ value, onChange, onSubmit, toolbar = false, toolbar
     el.focus();
   };
 
-  const pick = (user: PublicUser) => {
+  const pick = (option: Suggestion) => {
     const el = ref.current;
     if (!el) return;
     const caret = el.selectionStart;
-    const before = value.slice(0, caret).replace(/@([a-zA-Z0-9_]{1,24})$/, `@${user.username} `);
+    const before =
+      option.kind === "user"
+        ? value.slice(0, caret).replace(/@([a-zA-Z0-9_]{1,24})$/, `@${option.user.username} `)
+        : value.slice(0, caret).replace(/#([a-zA-Z0-9_]{1,50})$/, `#${option.tag} `);
     pendingSelection.current = [before.length, before.length];
     onChange(before + value.slice(caret).replace(/^\s/, ""));
     setQuery(null);
@@ -151,7 +178,18 @@ export function RichEditor({ value, onChange, onSubmit, toolbar = false, toolbar
 
   return (
     <div className={clsx("relative", wrapperClassName)}>
+      {previewing ? (
+        <div
+          id={previewId}
+          role="region"
+          aria-label={`${label} preview`}
+          className={clsx(className, "min-h-[4.5rem] overflow-auto")}
+        >
+          {value.trim() ? <RichText text={value} /> : <p className="text-muted">Nothing to preview yet.</p>}
+        </div>
+      ) : null}
       <textarea
+        hidden={previewing}
         {...props}
         ref={ref}
         value={value}
@@ -178,27 +216,43 @@ export function RichEditor({ value, onChange, onSubmit, toolbar = false, toolbar
         <ul
           id={listId}
           role="listbox"
-          aria-label="People to mention"
+          aria-label={query?.kind === "tag" ? "Hashtags" : "People to mention"}
           className="card absolute left-0 z-30 mt-1 w-64 max-w-full animate-rise overflow-hidden p-1"
         >
-          {options.map((user, i) => (
+          {options.map((option, i) => (
             <li
-              key={user.username}
+              key={option.kind === "user" ? option.user.username : option.tag}
               id={`${listId}-${i}`}
               role="option"
               aria-selected={i === active}
               onMouseDown={(e) => {
                 e.preventDefault();
-                pick(user);
+                pick(option);
               }}
               onMouseEnter={() => setActive(i)}
               className={clsx("flex cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2", i === active && "bg-surface-2")}
             >
-              <Avatar user={user} size="xs" />
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-medium">{user.displayName}</span>
-                <span className="block truncate text-xs text-muted">@{user.username}</span>
-              </span>
+              {option.kind === "user" ? (
+                <>
+                  <Avatar user={option.user} size="xs" />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{option.user.displayName}</span>
+                    <span className="block truncate text-xs text-muted">@{option.user.username}</span>
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="grid size-6 place-items-center rounded-full bg-accent-soft text-accent-strong" aria-hidden>
+                    <Hash className="size-3.5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">#{option.tag}</span>
+                    <span className="block truncate text-xs text-muted">
+                      {option.posts} public {option.posts === 1 ? "post" : "posts"}
+                    </span>
+                  </span>
+                </>
+              )}
             </li>
           ))}
         </ul>
@@ -209,15 +263,36 @@ export function RichEditor({ value, onChange, onSubmit, toolbar = false, toolbar
             <button
               key={tool.format}
               type="button"
+              disabled={previewing}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => format(tool.format)}
               title={tool.shortcut ? `${tool.label} (Ctrl/⌘+${tool.shortcut})` : tool.label}
               aria-label={tool.label}
-              className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-ink"
+              className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
             >
               <tool.icon className="size-4" />
             </button>
           ))}
+          {preview ? (
+            <button
+              type="button"
+              aria-pressed={previewing}
+              aria-controls={previewing ? previewId : undefined}
+              onClick={() => {
+                setPreviewing((p) => !p);
+                setQuery(null);
+                if (previewing) setTimeout(() => ref.current?.focus(), 0);
+              }}
+              title={previewing ? "Back to writing" : "Preview how it will look"}
+              className={clsx(
+                "ml-1 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors",
+                previewing ? "bg-accent-soft text-accent-strong" : "text-muted hover:bg-surface-2 hover:text-ink",
+              )}
+            >
+              {previewing ? <PenLine className="size-3.5" aria-hidden /> : <Eye className="size-3.5" aria-hidden />}
+              {previewing ? "Write" : "Preview"}
+            </button>
+          ) : null}
           {toolbarEnd}
         </div>
       ) : null}
