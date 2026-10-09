@@ -16,7 +16,7 @@ import { Logo } from "./Logo";
 import { Avatar } from "./ui/Avatar";
 import { Button } from "./ui/Button";
 import { Dialog } from "./ui/Dialog";
-import { SuspendedBanner, UsageNudge } from "./Wellbeing";
+import { SessionReminder, SessionTimer, SuspendedBanner, UsageNudge } from "./Wellbeing";
 
 interface LetterDraft {
   to?: string;
@@ -66,6 +66,7 @@ export function AppShell() {
       <MobileTopBar />
       <SuspendedBanner />
       <UsageNudge />
+      <SessionReminder />
       <div className="mx-auto flex w-full max-w-7xl gap-6 px-0 sm:px-4 lg:px-6">
         <Sidebar />
         <main id="main" className="min-w-0 flex-1 px-3 pt-4 pb-28 sm:px-0 lg:max-w-2xl lg:pt-8 lg:pb-16">
@@ -182,6 +183,7 @@ function Sidebar() {
           <button onClick={openBreathe} className="flex flex-1 items-center gap-2 rounded-full px-3 py-2 text-sm text-muted hover:bg-surface-2 hover:text-ink">
             <Wind className="size-4" /> Breathe
           </button>
+          {me ? <SessionTimer /> : null}
           <ThemeCycle />
         </div>
         {me ? (
@@ -234,7 +236,7 @@ function MobileTopBar() {
   return (
     <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-bg/85 px-4 py-2.5 backdrop-blur-md lg:hidden">
       <Link to="/" aria-label="aSocial home" className="mr-auto">
-        <Logo small />
+        <Logo small compact={!!me} />
       </Link>
       <button onClick={openBreathe} className="rounded-full p-2 text-muted hover:bg-surface-2" aria-label="Take a breath">
         <Wind className="size-[18px]" />
@@ -242,6 +244,9 @@ function MobileTopBar() {
       <ThemeCycle />
       {me ? (
         <>
+          <span className="max-[369px]:hidden">
+            <SessionTimer compact />
+          </span>
           <MobileLettersLink />
           <BatteryPicker compact />
           <Link to={`/u/${me.username}`} aria-label="Your profile" className="ml-1 rounded-full focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none">

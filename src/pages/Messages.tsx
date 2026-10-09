@@ -22,6 +22,8 @@ import type { ChatUser, Conversation, Message, ReportTarget } from "../lib/types
 
 const POLL_LIST_MS = 15_000;
 const POLL_THREAD_MS = 5_000;
+// Even with a live socket, check now and then: a dropped event shouldn't mean a missed message.
+const SAFETY_POLL_MS = 30_000;
 
 export function Messages() {
   const { id } = useParams();
@@ -73,7 +75,7 @@ function ConversationList({ activeId, className }: { activeId?: string; classNam
   const conversations = useQuery({
     queryKey: keys.conversations,
     queryFn: () => api<{ items: Conversation[] }>("/conversations"),
-    refetchInterval: status === "open" ? false : POLL_LIST_MS,
+    refetchInterval: status === "open" ? SAFETY_POLL_MS : POLL_LIST_MS,
   });
   const items = conversations.data?.items ?? [];
 
@@ -183,11 +185,13 @@ function Thread({ id }: { id: string }) {
     queryKey: ["conversation", id],
     queryFn: () => api<{ conversation: Conversation }>(`/conversations/${id}`),
     select: (r) => r.conversation,
+    // Keeps "Active now / last seen" fresh without a socket.
+    refetchInterval: 60_000,
   });
   const messages = useQuery({
     queryKey: keys.messages(id),
     queryFn: () => loadMessages(queryClient, id),
-    refetchInterval: status === "open" ? false : POLL_THREAD_MS,
+    refetchInterval: status === "open" ? SAFETY_POLL_MS : POLL_THREAD_MS,
   });
   const other = conversation.data?.other;
   const presence = usePresence(other);

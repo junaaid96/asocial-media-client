@@ -35,6 +35,8 @@ export interface Me extends Profile {
   role: Role;
   suspended: boolean;
   dailyLimitMinutes: number | null;
+  /** Older servers don't send this. */
+  sessionReminderMinutes?: number | null;
 }
 
 export interface ProfileResponse {
@@ -102,7 +104,7 @@ export interface Letter {
 
 export interface Notification {
   id: string;
-  type: "reaction" | "comment" | "follow" | "letter" | "mention" | "comment_reaction";
+  type: "reaction" | "comment" | "follow" | "letter" | "mention" | "comment_reaction" | "report_update" | "moderation";
   createdAt: string;
   read: boolean;
   actor: PublicUser | null;
@@ -112,6 +114,8 @@ export interface Notification {
   commentId: string | null;
   commentExcerpt: string | null;
   reaction: ReactionKind | null;
+  /** Text of system notices (report outcomes, moderation). */
+  body?: string | null;
 }
 
 export interface DailyPrompt {

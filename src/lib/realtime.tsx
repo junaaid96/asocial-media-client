@@ -6,20 +6,21 @@ import { type MessageCache, markRead, mergeMessages, receiveMessage } from "./ch
 import { keys } from "./queries";
 import type { Message } from "./types";
 
-// WebSockets need a long-running server. Serverless hosts (e.g. Vercel Functions) can't hold a
-// socket open, so there the chat screens quietly poll instead:
+// Live chat events come over a WebSocket at <API>/ws (the API serves it on Vercel Functions too).
 // - VITE_WS_URL set to an empty string: polling only, no socket is ever opened.
-// - VITE_WS_URL unset: derived from VITE_API_URL, except for *.vercel.app APIs (polling only).
+// - VITE_WS_URL unset: derived from VITE_API_URL.
 // - If the socket never manages to connect, we stop trying after a few attempts and keep polling.
-function resolveWsUrl(): string | null {
-  const configured = import.meta.env.VITE_WS_URL as string | undefined;
+// - Vercel closes sockets when a Function reaches its max duration; we just reconnect.
+export function resolveWsUrl(apiUrl: string = API_URL, configured = import.meta.env.VITE_WS_URL as string | undefined): string | null {
   if (configured !== undefined) return configured.trim() || null;
   try {
-    if (new URL(API_URL).hostname.endsWith(".vercel.app")) return null;
+    const url = new URL(apiUrl);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    url.pathname = `${url.pathname.replace(/\/$/, "")}/ws`;
+    return url.toString();
   } catch {
     return null;
   }
-  return `${API_URL.replace(/^http/, "ws")}/ws`;
 }
 
 export const WS_URL = resolveWsUrl();
@@ -68,7 +69,9 @@ type ServerEvent =
   | { type: "read"; conversationId: string; readerUsername: string; readAt: string }
   | { type: "typing"; conversationId: string; username: string; typing: boolean }
   | { type: "presence"; username: string; online: boolean; lastSeenAt: string | null }
-  | { type: "pong" };
+  | { type: "pong" }
+  // The server may have missed events for us (e.g. its listener reconnected): refetch.
+  | { type: "resync" };
 
 interface RealtimeValue {
   status: Status;
@@ -104,6 +107,13 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let pingTimer: ReturnType<typeof setInterval> | undefined;
 
+    // Catch up on anything that happened while we weren't listening.
+    const catchUp = () => {
+      void queryClient.invalidateQueries({ queryKey: keys.conversations });
+      void queryClient.invalidateQueries({ queryKey: ["messages"] });
+      void queryClient.invalidateQueries({ queryKey: ["summary"] });
+    };
+
     const handle = (event: ServerEvent) => {
       switch (event.type) {
         case "ready":
@@ -111,10 +121,10 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           everReady = true;
           writeFailures(0);
           setStatus("open");
-          // Catch up on anything that happened while we were away.
-          void queryClient.invalidateQueries({ queryKey: keys.conversations });
-          void queryClient.invalidateQueries({ queryKey: ["messages"] });
-          void queryClient.invalidateQueries({ queryKey: ["summary"] });
+          catchUp();
+          break;
+        case "resync":
+          catchUp();
           break;
         case "message":
           receiveMessage(queryClient, event.conversationId, event.message, username);
@@ -155,11 +165,22 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           // ignore malformed frames
         }
       };
+      let opened = false;
+      socket.addEventListener("open", () => (opened = true));
       socket.onclose = (e) => {
         if (socketRef.current === socket) socketRef.current = null;
         setStatus("offline");
         // 4401: the token was rejected; the regular session handling takes it from here.
-        if (!stopped && e.code !== 4401) scheduleRetry();
+        if (stopped || e.code === 4401) return;
+        // A healthy socket that the host closed (e.g. the Function hit its max duration):
+        // reconnect promptly instead of counting it as a failure.
+        if (everReady && opened && attempt === 0) {
+          clearTimeout(retryTimer);
+          retryTimer = setTimeout(connect, 500 + Math.random() * 1000);
+          attempt = 1;
+          return;
+        }
+        scheduleRetry();
       };
     };
 
