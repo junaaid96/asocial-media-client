@@ -9,10 +9,10 @@ their time.
 
 - **Letters**: pen-pal messages that arrive after ~15 minutes, ~3 hours or ~12 hours. No typing bubbles, no
   read receipts, and a lined-paper reading view.
-- **Messages**: real-time 1:1 chat over WebSockets with a conversation list, unread counts, typing and online
-  indicators, read receipts, persisted history with "load earlier", optimistic sends that retry safely, and
-  automatic reconnect with backoff. When the socket can't connect, it falls back to polling, and a slow safety
-  poll runs even while live. Who can message you follows the same setting as letters.
+- **Messages**: real-time 1:1 chat over Ably with a conversation list, unread counts, typing and online
+  indicators (Ably presence), read receipts, persisted history with "load earlier", optimistic sends that retry
+  safely, and automatic reconnect. If Ably isn't available it falls back to the API's WebSocket, then to
+  polling, and a slow safety poll runs even while live. Who can message you follows the same setting as letters.
 - **Post privacy**: Public, Followers or Only me, chosen when writing or editing and enforced by the API.
 - **Rich text**: bold, italic, lists, links and code in posts, replies and messages (toolbar plus Ctrl/⌘+B, I, K,
   E), `@mention` and `#hashtag` autocomplete, clickable `#hashtags`, and a Write/Preview toggle when writing a
@@ -63,7 +63,13 @@ npm test               # unit tests (vitest)
 Deployed on Vercel as a static Vite app (`vercel.json` adds the SPA fallback and long-term caching for hashed
 assets). Set `VITE_API_URL` to the API's URL in the Vercel project's Production environment.
 
-Real-time chat connects to `VITE_WS_URL`, or to `VITE_API_URL` with `ws(s)://` and `/ws` when it isn't set. The
+Real-time chat uses [Ably](https://ably.com) first: the app asks the API for a short-lived, subscribe-only token
+(`POST /api/realtime/token`, renewed automatically by ably-js through `authCallback`), so there's no Ably key in
+the client. ably-js is loaded lazily, only once you're signed in. If the API doesn't offer Ably (503/404) or
+the connection never gets through, the app uses the WebSocket fallback below. Typing indicators go through
+`POST /api/conversations/:id/typing`.
+
+The WebSocket fallback connects to `VITE_WS_URL`, or to `VITE_API_URL` with `ws(s)://` and `/ws` when it isn't set. The
 API serves that socket both locally and on Vercel Functions (which close sockets at their max duration; the app
 reconnects right away). Without a socket, chat still works through polling (every 5 seconds in an open
 conversation):
