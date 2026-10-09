@@ -29,7 +29,7 @@ their time.
 - **Gentle reactions, quiet counts**: *Felt this* 🤍, *Sending a hug* 🫂, *Insightful* 💡 and *Relate* 🌱
   instead of likes. Only the author sees the totals, unless they choose otherwise.
 - **Daily prompt**: one soft question a day. Answers show the question, which links to every answer
-  (`/prompt/:date`).
+  (`/prompt/:date`), with links to the previous and next day's prompt.
 - **Moods & mood garden**: tag posts with how you feel, filter the feed by mood, and see a private five-week
   garden of your moods.
 - **Anonymous posts & content notes**: share heavy thoughts without your name, and blur sensitive posts behind
@@ -38,6 +38,11 @@ their time.
   20 posts, and "You're all caught up".
 - **Breathe**: a one-minute box-breathing exercise, always one tap away.
 - **Kindred spirits**: follow suggestions based on shared moods. Follower counts are private.
+- **Account**: Sign out sits right after your name in the sidebar (an icon button in the top bar on phones);
+  Profile and Settings are sidebar links, so there's no separate account menu.
+- **Admins**: there's no built-in admin login. Promote an account on the API with
+  `npm run admin:promote -- <username-or-email>`, then `/admin` appears for it.
+- **Credit**: a "Developed by `<CodeJBorg />`" pill at the bottom of the sign-in pages and in the app shell.
 - Search (people + full-text posts), saved posts, replies, notifications, profile photos, light/dark themes,
   a mobile layout with bottom navigation, and accessible dialogs and focus states.
 
@@ -57,6 +62,20 @@ npm run dev            # http://localhost:5173
 npm run build
 npm test               # unit tests (vitest)
 ```
+
+## Routes
+
+| Path | Page |
+| --- | --- |
+| `/login`, `/join` | Sign in, sign up |
+| `/` | Home feed (Latest, Following, Today's prompt, mood and tag filters) |
+| `/explore` | Search people and posts, trending tags |
+| `/post/:id`, `/u/:username` | Post with replies, profile |
+| `/letters`, `/letters/:id` | Letters inbox/sent, letter view |
+| `/messages`, `/messages/:id` | Chat |
+| `/notifications`, `/saved`, `/settings` | Notifications, saved posts, settings (profile, presence & privacy, appearance, time well spent) |
+| `/tag/:tag`, `/prompt/:date` | Posts with a hashtag, answers to a day's prompt |
+| `/admin` | Moderation dashboard (admins only) |
 
 ## Deployment
 
