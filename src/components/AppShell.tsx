@@ -124,11 +124,11 @@ function Sidebar() {
   const { items, hushed } = useNavItems();
 
   return (
-    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col py-8 lg:flex">
-      <Link to="/" className="mb-8 px-3" aria-label="aSocial home">
+    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col overflow-y-auto overscroll-contain py-8 [scrollbar-width:thin] lg:flex [@media(max-height:860px)]:py-4">
+      <Link to="/" className="mb-8 px-3 [@media(max-height:860px)]:mb-4" aria-label="aSocial home">
         <Logo />
       </Link>
-      <nav aria-label="Main" className="space-y-1">
+      <nav aria-label="Main" className="space-y-1 [@media(max-height:860px)]:space-y-0.5">
         {items.map((item) => (
           <NavLink
             key={item.label}
@@ -136,7 +136,7 @@ function Sidebar() {
             end={item.to === "/"}
             className={({ isActive }) =>
               clsx(
-                "flex items-center gap-3.5 rounded-full px-4 py-2.5 text-[15px] transition-colors",
+                "flex items-center gap-3.5 rounded-full px-4 py-2.5 text-[15px] transition-colors [@media(max-height:860px)]:py-1.5",
                 isActive ? "bg-surface font-semibold text-ink shadow-sm ring-1 ring-line" : "text-ink-soft hover:bg-surface-2 hover:text-ink",
               )
             }
@@ -153,7 +153,7 @@ function Sidebar() {
       </nav>
 
       {me ? (
-        <Button size="lg" className="mt-6 w-full" onClick={openWrite}>
+        <Button size="lg" className="mt-6 w-full shrink-0 [@media(max-height:860px)]:mt-3" onClick={openWrite}>
           <PenLine className="size-4" /> Write
         </Button>
       ) : (
@@ -171,7 +171,7 @@ function Sidebar() {
         </div>
       )}
 
-      <div className="mt-auto space-y-2 pt-6">
+      <div className="mt-auto space-y-2 pt-6 [@media(max-height:860px)]:space-y-1.5 [@media(max-height:860px)]:pt-3">
         {hushed ? (
           <p className="flex items-center gap-2 px-3 text-xs text-muted">
             <Moon className="size-3.5" /> Notifications hushed while you recharge
@@ -185,8 +185,8 @@ function Sidebar() {
           <ThemeCycle />
         </div>
         {me ? (
-          <div className="space-y-1 border-t border-line pt-2">
-            <Link to={`/u/${me.username}`} className="flex min-w-0 items-center gap-3 rounded-2xl px-2 py-2 hover:bg-surface-2">
+          <div className="flex items-center gap-1 border-t border-line pt-2">
+            <Link to={`/u/${me.username}`} className="flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl px-2 py-2 hover:bg-surface-2">
               <Avatar user={me} size="sm" showBattery />
               <span className="min-w-0">
                 <span className="block truncate text-sm font-semibold">{me.displayName}</span>
@@ -196,9 +196,10 @@ function Sidebar() {
             <button
               type="button"
               onClick={signOutNow}
-              className="flex w-full items-center gap-2 rounded-full px-3 py-2 text-sm text-muted transition-colors hover:bg-clay-soft hover:text-clay focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+              title="Sign out"
+              className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-2 text-xs font-medium text-muted ring-1 ring-line transition-colors hover:bg-clay-soft hover:text-clay hover:ring-clay/30 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
             >
-              <LogOut className="size-4" aria-hidden /> Sign out
+              <LogOut className="size-3.5" aria-hidden /> Sign out
             </button>
           </div>
         ) : null}
