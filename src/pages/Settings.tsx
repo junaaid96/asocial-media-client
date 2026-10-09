@@ -52,7 +52,7 @@ export function Settings() {
       <PresenceSettings me={me} />
       {usage.available ? <TimeSettings me={me} /> : null}
       <AppearanceSettings />
-      <Section title="Account" description={`Signed in as ${me.email}. Sign out from the menu next to your name.`}>
+      <Section title="Account" description={`Signed in as ${me.email}. Sign out with the button next to your name (on phones, the icon at the top right).`}>
         <div className="flex flex-wrap gap-2">
           {me.role === "admin" ? (
             <Link to="/admin">
