@@ -373,7 +373,6 @@ function EditPostDialog({ post, onClose }: { post: Post; onClose: () => void }) 
           className="field resize-y leading-relaxed"
           autoFocus
           toolbar
-          preview
         />
         <VisibilityPicker name={`edit-visibility-${post.id}`} value={visibility} onChange={setVisibility} />
         <div className="flex flex-wrap gap-1.5">

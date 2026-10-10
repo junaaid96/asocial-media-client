@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { ArrowLeft, Flag, MoreHorizontal, RotateCw, Send, WifiOff } from "lucide-react";
-import { type KeyboardEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { ReportDialog } from "../components/ReportDialog";
@@ -307,13 +307,6 @@ function Thread({ id }: { id: string }) {
   };
   useEffect(() => () => clearTimeout(typingStop.current), []);
 
-  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-      e.preventDefault();
-      send();
-    }
-  };
-
   if (conversation.isError) {
     return (
       <div className="grid flex-1 place-items-center">
@@ -453,7 +446,8 @@ function Thread({ id }: { id: string }) {
             label="Write a message"
             value={draft}
             onChange={onDraft}
-            onKeyDown={onKeyDown}
+            onSubmit={send}
+            submitOnEnter
             rows={1}
             maxLength={2000}
             placeholder="Write a message…"

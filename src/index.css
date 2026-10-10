@@ -105,6 +105,42 @@
 }
 
 @layer components {
+
+  /* WYSIWYG editor content: matches how RichText renders the stored text. */
+  .rich-editor {
+    @apply overflow-y-auto break-words whitespace-pre-wrap outline-none;
+  }
+  .rich-editor > * + * {
+    margin-top: 0.6em;
+  }
+  .rich-editor ul {
+    @apply list-disc space-y-1 pl-5 marker:text-muted;
+  }
+  .rich-editor ol {
+    @apply list-decimal space-y-1 pl-5 marker:text-muted;
+  }
+  .rich-editor li > p {
+    margin: 0;
+  }
+  .rich-editor strong {
+    @apply font-semibold;
+  }
+  .rich-editor a {
+    @apply font-medium text-accent underline decoration-accent/40 underline-offset-2;
+  }
+  .rich-editor code {
+    @apply rounded-md bg-surface-2 px-1.5 py-0.5 font-mono text-[0.88em] text-ink-soft ring-1 ring-line;
+  }
+  .rich-editor pre {
+    @apply overflow-x-auto rounded-xl bg-surface-2 p-3 font-mono text-[13px] leading-relaxed text-ink-soft ring-1 ring-line;
+  }
+  .rich-editor pre code {
+    @apply bg-transparent p-0 text-inherit ring-0;
+  }
+  .rich-editor p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    @apply pointer-events-none float-left h-0 text-muted/80;
+  }
   .card {
     @apply rounded-2xl border border-line bg-surface;
     box-shadow: 0 1px 2px rgb(var(--shadow) / 0.04), 0 8px 24px -16px rgb(var(--shadow) / 0.18);

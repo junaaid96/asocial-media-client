@@ -17,12 +17,12 @@ function safeHref(url: string): string | null {
   }
 }
 
-const INLINE = new RegExp(
+export const INLINE = new RegExp(
   [
     /(?<code>`[^`\n]+`)/.source,
     /(?<link>\[[^\]\n]{1,200}\]\((?:[^()\s]|\([^()\s]*\)){1,2048}\))/.source,
     /(?<bold>\*\*(?=\S)[\s\S]+?(?<=\S)\*\*|__(?=\S)[\s\S]+?(?<=\S)__)/.source,
-    /(?<italic>(?<![\w*])\*(?=[^\s*])[^*\n]+?(?<=\S)\*(?![\w*])|(?<![\w_])_(?=[^\s_])[^_\n]+?(?<=\S)_(?![\w_]))/.source,
+    /(?<italic>(?<!\*)\*(?=[^\s*])[^*\n]+?(?<=[^\s*])\*(?!\*)|(?<![\w_])_(?=[^\s_])[^_\n]+?(?<=\S)_(?![\w_]))/.source,
     /(?<url>https?:\/\/[^\s<>]+[^\s<>.,:;"')\]!?])/.source,
     /(?<mention>(?<![\w@/.])@[a-zA-Z0-9_]{3,24}(?![\w@]))/.source,
     /(?<tag>(?<![\w&#/])#[a-zA-Z0-9_]{0,49}[a-zA-Z][a-zA-Z0-9_]{0,49}(?!\w))/.source,
@@ -108,7 +108,7 @@ function inline(text: string, key: string, plainLinks = false): ReactNode[] {
   return out;
 }
 
-type Block =
+export type Block =
   | { type: "p"; lines: string[] }
   | { type: "ul"; items: string[] }
   | { type: "ol"; items: string[]; start: number }
@@ -193,6 +193,7 @@ export function plainText(text: string): string {
     .replace(/\[([^\]\n]+)\]\([^)\s]+\)/g, "$1")
     .replace(/(\*\*|__|`)/g, "")
     .replace(/(^|\s)[_*](\S[^_*\n]*\S|\S)[_*](?=\s|$|[.,!?])/g, "$1$2")
+    .replace(/\*(?=\S)([^*\n]+?)(?<=\S)\*/g, "$1")
     .replace(/^\s*([-*•]|\d+[.)])\s+/gm, "")
     .replace(/\s+/g, " ")
     .trim();
