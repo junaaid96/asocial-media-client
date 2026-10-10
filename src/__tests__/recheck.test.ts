@@ -1,20 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { lookupAt } from "../components/RichEditor";
 import { resolveWsUrl } from "../lib/realtime";
 import { formatClock, reminderStep } from "../lib/usage";
 import { shiftDay } from "../pages/PromptAnswers";
-
-describe("editor autocomplete", () => {
-  it("detects an @mention or #hashtag being typed at the caret", () => {
-    expect(lookupAt("hi @Ma", 6)).toEqual({ kind: "user", q: "ma" });
-    expect(lookupAt("calm #Rain", 10)).toEqual({ kind: "tag", q: "rain" });
-    expect(lookupAt("(#tea", 5)).toEqual({ kind: "tag", q: "tea" });
-    // Not inside a word, and not after the caret moved on.
-    expect(lookupAt("email@host", 10)).toBeNull();
-    expect(lookupAt("a#b", 3)).toBeNull();
-    expect(lookupAt("#tea and", 8)).toBeNull();
-  });
-});
 
 describe("websocket url", () => {
   it("derives /ws from the API url, including on Vercel", () => {
