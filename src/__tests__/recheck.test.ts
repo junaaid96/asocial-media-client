@@ -58,3 +58,13 @@ describe("post privacy badge", () => {
     expect(visibilityDescription("private", true)).toBe("Visible only to you");
   });
 });
+
+import { reactionBreakdown } from "../components/ReactionSummary";
+import { REACTIONS } from "../lib/meta";
+describe("reaction counts", () => {
+  it("orders the breakdown and summarises it for screen readers", () => {
+    const { kinds, label } = reactionBreakdown({ felt: 1, hug: 2 }, 3);
+    expect(kinds).toEqual(["hug", "felt"]);
+    expect(label).toBe(`3 reactions: 2 ${REACTIONS.hug.label}, 1 ${REACTIONS.felt.label}`);
+  });
+});

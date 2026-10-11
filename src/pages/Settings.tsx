@@ -9,7 +9,7 @@ import { useSetBattery } from "../components/BatteryPicker";
 import { Avatar } from "../components/ui/Avatar";
 import { Button } from "../components/ui/Button";
 import { Dialog } from "../components/ui/Dialog";
-import { BatteryIcon, Toggle } from "../components/ui/misc";
+import { BatteryIcon } from "../components/ui/misc";
 import { api, errorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { uploadImage } from "../lib/image";
@@ -252,14 +252,6 @@ function PresenceSettings({ me }: { me: Me }) {
         ))}
       </div>
 
-      <div className="mt-6 border-t border-line pt-5">
-        <Toggle
-          checked={me.showCounts}
-          onChange={(showCounts) => update.mutate({ showCounts })}
-          label="Show reaction totals on my posts to everyone"
-          hint="Off by default. Quiet counts mean only you see how many people resonated."
-        />
-      </div>
     </Section>
   );
 }
