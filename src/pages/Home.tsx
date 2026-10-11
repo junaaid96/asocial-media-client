@@ -112,7 +112,7 @@ export function Home() {
 const FEATURES = [
   { icon: Feather, title: "Letters that take their time", text: "Pen-pal messages that arrive after 15 minutes to 12 hours. No typing bubbles, no read receipts." },
   { icon: BatteryMedium, title: "Social battery", text: "Let people know how much energy you have. Recharging hushes every notification." },
-  { icon: HeartHandshake, title: "Gentle reactions, quiet counts", text: "Felt this, a hug, insight, relate — and totals only you can see." },
+  { icon: HeartHandshake, title: "Gentle reactions", text: "Felt this, a hug, insight, relate — with a simple count of who resonated." },
   { icon: Sparkles, title: "A daily prompt", text: "One soft question each day, answered together at your own pace." },
   { icon: EyeOff, title: "Anonymous when you need it", text: "Share a heavy thought without your name attached. Add content notes for others." },
   { icon: Leaf, title: "A feed with an ending", text: "No infinite scroll. You choose when to read more, and we'll remind you to take a breath." },

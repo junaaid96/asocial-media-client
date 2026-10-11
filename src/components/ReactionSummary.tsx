@@ -5,12 +5,11 @@ import type { ReactionKind } from "../lib/types";
 
 /**
  * Total reactions (summed across kinds) with a breakdown on hover, focus or tap.
- * Counts are only sent by the API when they're visible to the viewer (quiet counts).
+ * Every viewer sees the total and the per-reaction breakdown (tap or hover for details).
  */
 export function ReactionSummary({
   counts,
   total,
-  isMine,
   size = "md",
 }: {
   counts: Partial<Record<ReactionKind, number>> | null;
@@ -21,11 +20,17 @@ export function ReactionSummary({
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const id = useId();
+  // A click/tap pins the breakdown open (hover alone shows it while the pointer is there).
+  const pinned = useRef(false);
 
   useEffect(() => {
     if (!open) return;
-    const onDown = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const close = () => {
+      pinned.current = false;
+      setOpen(false);
+    };
+    const onDown = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && close();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
     document.addEventListener("pointerdown", onDown);
     document.addEventListener("keydown", onKey);
     return () => {
@@ -35,14 +40,16 @@ export function ReactionSummary({
   }, [open]);
 
   if (total == null || total <= 0 || !counts) return null;
-  const kinds = REACTION_KEYS.filter((k) => counts[k]).sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0));
-  const label = `${total} ${total === 1 ? "reaction" : "reactions"}: ${kinds.map((k) => `${counts[k]} ${REACTIONS[k].label}`).join(", ")}`;
+  const { kinds, label } = reactionBreakdown(counts, total);
 
   return (
-    <div className="relative" ref={ref} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+    <div className="relative" ref={ref} onMouseEnter={() => setOpen(true)} onMouseLeave={() => !pinned.current && setOpen(false)}>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          pinned.current = !pinned.current;
+          setOpen(pinned.current);
+        }}
         aria-expanded={open}
         aria-controls={id}
         aria-label={label}
@@ -59,7 +66,7 @@ export function ReactionSummary({
           ))}
         </span>
         <span className="font-medium tabular-nums text-ink-soft">{total}</span>
-        {isMine && size === "md" ? <span className="hidden sm:inline">{total === 1 ? "person" : "people"}</span> : null}
+        {size === "md" ? <span className="hidden sm:inline">{total === 1 ? "person" : "people"}</span> : null}
       </button>
       {open ? (
         <div id={id} role="tooltip" className="absolute right-0 bottom-full z-20 pb-2">
@@ -81,4 +88,11 @@ export function ReactionSummary({
       ) : null}
     </div>
   );
+}
+
+/** Reaction kinds by count (most first) and a spoken summary, e.g. "3 reactions: 2 Hug, 1 Felt this". */
+export function reactionBreakdown(counts: Partial<Record<ReactionKind, number>>, total: number) {
+  const kinds = REACTION_KEYS.filter((k) => counts[k]).sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0));
+  const label = `${total} ${total === 1 ? "reaction" : "reactions"}: ${kinds.map((k) => `${counts[k]} ${REACTIONS[k].label}`).join(", ")}`;
+  return { kinds, label };
 }
