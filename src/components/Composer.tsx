@@ -114,7 +114,7 @@ export function Composer({ answeringPrompt = false, onPosted, autoFocus }: { ans
       </div>
 
       {image ? (
-        <div className="relative mt-3 ml-14 inline-block">
+        <div className="relative mt-3 inline-block sm:ml-14">
           <img src={image.preview} alt="Selected upload preview" className="max-h-72 rounded-2xl border border-line object-cover" />
           <button
             type="button"
@@ -156,7 +156,7 @@ export function Composer({ answeringPrompt = false, onPosted, autoFocus }: { ans
         </div>
       ) : null}
 
-      <div className={clsx("mt-3 flex items-center gap-1 sm:ml-14", !expanded && "hidden")}>
+      <div className={clsx("mt-3 flex flex-wrap items-center gap-1 sm:ml-14", !expanded && "hidden")}>
         <input
           ref={fileInput}
           type="file"
@@ -185,7 +185,7 @@ export function Composer({ answeringPrompt = false, onPosted, autoFocus }: { ans
         <span className={clsx("ml-auto text-xs tabular-nums", body.length > MAX ? "text-clay" : "text-muted")}>
           {body.length > MAX * 0.8 ? `${body.length}/${MAX}` : ""}
         </span>
-        <Button type="submit" loading={publish.isPending} disabled={!canPost} className="ml-2">
+        <Button type="submit" loading={publish.isPending} disabled={!canPost} className="ml-2 min-h-11 px-5">
           {anonymous ? "Share anonymously" : "Share"}
         </Button>
       </div>
@@ -205,7 +205,7 @@ function ToolButton({ label, active, onClick, children }: { label: string; activ
       aria-label={label}
       aria-pressed={active}
       className={clsx(
-        "rounded-full p-2 transition-colors",
+        "grid size-10 place-items-center rounded-full transition-colors pointer-coarse:size-11",
         active ? "bg-accent-soft text-accent-strong" : "text-muted hover:bg-surface-2 hover:text-accent",
       )}
     >

@@ -429,7 +429,7 @@ export default function WysiwygEditor({
         </div>
       ) : null}
       {toolbar ? (
-        <div role="toolbar" aria-label="Formatting" className="mt-1 flex flex-wrap items-center gap-0.5">
+        <div role="toolbar" aria-label="Formatting" className="mt-1 -mx-1 flex flex-wrap items-center gap-0.5 pointer-coarse:gap-1">
           {tools.map((tool) => (
             <button
               key={tool.key}
@@ -440,7 +440,7 @@ export default function WysiwygEditor({
               aria-label={tool.label}
               aria-pressed={!!tool.on}
               className={clsx(
-                "rounded-lg p-1.5 transition-colors hover:bg-surface-2 hover:text-ink",
+                "grid size-8 place-items-center rounded-lg transition-colors hover:bg-surface-2 hover:text-ink pointer-coarse:size-10",
                 tool.on ? "bg-accent-soft text-accent-strong" : "text-muted",
               )}
             >

@@ -1,6 +1,6 @@
 import clsx from "clsx";
-import { Bell, Bookmark, Compass, Home, LogOut, Mail, MessageCircle, Moon, PenLine, Settings, ShieldCheck, Sun, SunMoon, User, Wind } from "lucide-react";
-import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
+import { Bell, Bookmark, Compass, Home, LogOut, Mail, Menu, MessageCircle, Moon, PenLine, Settings, ShieldCheck, Sun, SunMoon, User, Wind, X } from "lucide-react";
+import { createContext, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useAuth } from "../lib/auth";
@@ -67,9 +67,9 @@ export function AppShell() {
       <SuspendedBanner />
       <UsageNudge />
       <SessionReminder />
-      <div className="mx-auto flex w-full max-w-7xl gap-6 px-0 sm:px-4 lg:px-6">
+      <div className="mx-auto flex w-full max-w-7xl gap-4 px-0 sm:px-4 md:gap-6 md:pl-0 lg:px-6">
         <Sidebar />
-        <main id="main" className="min-w-0 flex-1 px-3 pt-4 pb-28 sm:px-0 lg:max-w-2xl lg:pt-8 lg:pb-16">
+        <main id="main" className="min-w-0 flex-1 px-3 pt-4 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-0 md:mx-auto md:max-w-2xl md:pt-6 md:pr-2 md:pb-16 lg:mx-0 lg:pt-8">
           <Outlet />
           <footer className="mt-10 flex justify-center border-t border-line pt-6 xl:hidden">
             <CreditPill />
@@ -124,73 +124,125 @@ function Sidebar() {
   const signOutNow = useSignOutNow();
   const { items, hushed } = useNavItems();
 
+  // md (tablet): a collapsed icon rail. lg+: the full labelled sidebar.
   return (
-    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col overflow-y-auto overscroll-contain py-8 [scrollbar-width:thin] lg:flex [@media(max-height:860px)]:py-4">
-      <Link to="/" className="mb-8 px-3 [@media(max-height:860px)]:mb-4" aria-label="aSocial home">
-        <Logo />
+    <aside className="sticky top-0 hidden h-dvh w-[4.75rem] shrink-0 flex-col items-center overflow-y-auto overscroll-contain py-6 pl-[env(safe-area-inset-left)] [scrollbar-width:thin] md:flex lg:w-60 lg:items-stretch lg:py-8 [@media(max-height:860px)]:py-4">
+      <Link to="/" className="mb-6 rounded-2xl px-1 lg:mb-8 lg:px-3 [@media(max-height:860px)]:mb-4" aria-label="aSocial home">
+        <span className="lg:hidden">
+          <Logo markOnly />
+        </span>
+        <span className="hidden lg:inline">
+          <Logo />
+        </span>
       </Link>
-      <nav aria-label="Main" className="space-y-1 [@media(max-height:860px)]:space-y-0.5">
+      <nav aria-label="Main" className="w-full space-y-1 px-2 lg:px-0 [@media(max-height:860px)]:space-y-0.5">
         {items.map((item) => (
           <NavLink
             key={item.label}
             to={item.to}
             end={item.to === "/"}
+            title={item.label}
+            aria-label={item.badge ? `${item.label} (${item.badge} new)` : item.label}
             className={({ isActive }) =>
               clsx(
-                "flex items-center gap-3.5 rounded-full px-4 py-2.5 text-[15px] transition-colors [@media(max-height:860px)]:py-1.5",
+                "relative flex min-h-11 items-center justify-center gap-3.5 rounded-full text-[15px] transition-colors lg:justify-start lg:px-4 lg:py-2.5 [@media(max-height:860px)]:lg:py-1.5",
                 isActive ? "bg-surface font-semibold text-ink shadow-sm ring-1 ring-line" : "text-ink-soft hover:bg-surface-2 hover:text-ink",
               )
             }
           >
-            <item.icon className="size-5" />
-            <span className="flex-1">{item.label}</span>
+            <item.icon className="size-5 shrink-0" aria-hidden />
+            <span className="hidden flex-1 lg:inline">{item.label}</span>
             {item.badge ? (
-              <span className="grid min-w-5 place-items-center rounded-full bg-clay px-1.5 text-[11px] font-semibold text-white">
-                {item.badge > 9 ? "9+" : item.badge}
-              </span>
+              <>
+                <span className="absolute top-2 right-3 size-2.5 rounded-full bg-clay ring-2 ring-bg lg:hidden" aria-hidden />
+                <span className="hidden min-w-5 place-items-center rounded-full bg-clay px-1.5 text-[11px] font-semibold text-white lg:grid" aria-hidden>
+                  {item.badge > 9 ? "9+" : item.badge}
+                </span>
+              </>
             ) : null}
           </NavLink>
         ))}
       </nav>
 
       {me ? (
-        <Button size="lg" className="mt-6 w-full shrink-0 [@media(max-height:860px)]:mt-3" onClick={openWrite}>
-          <PenLine className="size-4" /> Write
-        </Button>
+        <>
+          <div className="mt-6 hidden w-full shrink-0 lg:block [@media(max-height:860px)]:mt-3">
+            <Button size="lg" className="w-full" onClick={openWrite}>
+              <PenLine className="size-4" /> Write
+            </Button>
+          </div>
+          <button
+            type="button"
+            onClick={openWrite}
+            aria-label="Write"
+            title="Write"
+            className="mt-5 grid size-12 shrink-0 place-items-center rounded-full bg-accent text-on-accent shadow-lg transition active:scale-95 lg:hidden"
+          >
+            <PenLine className="size-5" aria-hidden />
+          </button>
+        </>
       ) : (
-        <div className="mt-6 space-y-2">
+        <div className="mt-6 w-full space-y-2 px-2 lg:px-0">
           <Link to="/join" className="block">
-            <Button size="lg" className="w-full">
-              Join aSocial
+            <Button size="lg" className="w-full max-lg:px-0">
+              <span className="lg:hidden">Join</span>
+              <span className="hidden lg:inline">Join aSocial</span>
             </Button>
           </Link>
           <Link to="/login" className="block">
-            <Button size="lg" variant="secondary" className="w-full">
+            <Button size="lg" variant="secondary" className="w-full max-lg:px-0">
               Sign in
             </Button>
           </Link>
         </div>
       )}
 
-      <div className="mt-auto space-y-2 pt-6 [@media(max-height:860px)]:space-y-1.5 [@media(max-height:860px)]:pt-3">
+      <div className="mt-auto w-full space-y-2 pt-6 [@media(max-height:860px)]:space-y-1.5 [@media(max-height:860px)]:pt-3">
         {hushed ? (
-          <p className="flex items-center gap-2 px-3 text-xs text-muted">
+          <p className="hidden items-center gap-2 px-3 text-xs text-muted lg:flex">
             <Moon className="size-3.5" /> Notifications hushed while you recharge
           </p>
         ) : null}
-        {me ? <BatteryPicker direction="up" /> : null}
-        <div className="flex items-center gap-1">
-          <button onClick={openBreathe} className="flex flex-1 items-center gap-2 rounded-full px-3 py-2 text-sm text-muted hover:bg-surface-2 hover:text-ink">
-            <Wind className="size-4" /> Breathe
+        {me ? (
+          <>
+            <div className="hidden lg:block">
+              <BatteryPicker direction="up" />
+            </div>
+            <div className="flex justify-center lg:hidden">
+              <BatteryPicker compact direction="up" />
+            </div>
+          </>
+        ) : null}
+        <div className="flex flex-col items-center gap-1 lg:flex-row">
+          <button
+            onClick={openBreathe}
+            aria-label="Breathe"
+            title="Breathe"
+            className="flex min-h-11 items-center justify-center gap-2 rounded-full px-3 py-2 text-sm text-muted hover:bg-surface-2 hover:text-ink max-lg:size-11 max-lg:px-0 lg:flex-1 lg:justify-start"
+          >
+            <Wind className="size-4" aria-hidden /> <span className="hidden lg:inline">Breathe</span>
           </button>
-          {me ? <SessionTimer /> : null}
+          {me ? (
+            <>
+              <span className="hidden lg:inline-flex">
+                <SessionTimer />
+              </span>
+              <span className="lg:hidden">
+                <SessionTimer compact />
+              </span>
+            </>
+          ) : null}
           <ThemeCycle />
         </div>
         {me ? (
-          <div className="flex items-center gap-1 border-t border-line pt-2">
-            <Link to={`/u/${me.username}`} className="flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl px-2 py-2 hover:bg-surface-2">
+          <div className="flex flex-col items-center gap-1 border-t border-line pt-2 lg:flex-row">
+            <Link
+              to={`/u/${me.username}`}
+              title="Your profile"
+              className="flex min-w-0 items-center gap-2.5 rounded-2xl px-2 py-2 hover:bg-surface-2 lg:flex-1"
+            >
               <Avatar user={me} size="sm" showBattery />
-              <span className="min-w-0">
+              <span className="hidden min-w-0 lg:block">
                 <span className="block truncate text-sm font-semibold">{me.displayName}</span>
                 <span className="block truncate text-xs text-muted">@{me.username}</span>
               </span>
@@ -199,9 +251,10 @@ function Sidebar() {
               type="button"
               onClick={signOutNow}
               title="Sign out"
-              className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-2 text-xs font-medium text-muted ring-1 ring-line transition-colors hover:bg-clay-soft hover:text-clay hover:ring-clay/30 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+              aria-label="Sign out"
+              className="flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-2.5 py-2 text-xs font-medium text-muted ring-1 ring-line transition-colors hover:bg-clay-soft hover:text-clay hover:ring-clay/30 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none max-lg:size-11 max-lg:px-0 lg:min-h-0"
             >
-              <LogOut className="size-3.5" aria-hidden /> Sign out
+              <LogOut className="size-4 lg:size-3.5" aria-hidden /> <span className="hidden lg:inline">Sign out</span>
             </button>
           </div>
         ) : null}
@@ -220,7 +273,7 @@ export function ThemeCycle() {
   return (
     <button
       onClick={() => setTheme(next)}
-      className="rounded-full p-2 text-muted hover:bg-surface-2 hover:text-ink"
+      className="grid size-11 shrink-0 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-ink lg:size-9"
       aria-label={`Theme: ${theme}. Switch to ${next}`}
       title={`Theme: ${theme}`}
     >
@@ -231,43 +284,153 @@ export function ThemeCycle() {
 
 function MobileTopBar() {
   const { me } = useAuth();
+  const [menu, setMenu] = useState(false);
+  const location = useLocation();
+  useEffect(() => setMenu(false), [location.pathname]);
+  return (
+    <>
+      <header className="sticky top-0 z-30 flex items-center gap-1 border-b border-line bg-bg/85 px-3 pt-[max(0.375rem,env(safe-area-inset-top))] pb-1.5 backdrop-blur-md md:hidden">
+        <Link to="/" aria-label="aSocial home" className="mr-auto flex min-h-11 items-center rounded-2xl px-1">
+          <Logo small compact={!!me} />
+        </Link>
+        {me ? (
+          <>
+            <SessionTimer compact />
+            <BatteryPicker compact />
+            <button
+              type="button"
+              onClick={() => setMenu(true)}
+              aria-label="Open menu"
+              aria-haspopup="dialog"
+              aria-expanded={menu}
+              className="relative ml-0.5 flex min-h-11 items-center gap-1.5 rounded-full py-1 pr-2.5 pl-1 ring-1 ring-line hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+            >
+              <Avatar user={me} size="sm" />
+              <Menu className="size-[18px] text-muted" aria-hidden />
+              <MoreBadge />
+            </button>
+          </>
+        ) : (
+          <>
+            <ThemeCycle />
+            <Link to="/login" className="ml-1">
+              <Button size="sm" className="min-h-10">
+                Sign in
+              </Button>
+            </Link>
+          </>
+        )}
+      </header>
+      {me ? <MoreDrawer open={menu} onClose={() => setMenu(false)} /> : null}
+    </>
+  );
+}
+
+/** Dot on the menu button when something tucked inside the drawer (e.g. letters) is waiting. */
+function MoreBadge() {
+  const { items } = useNavItems();
+  const hidden = items.filter((i) => !["Home", "Explore", "Messages", "Notifications"].includes(i.label));
+  if (!hidden.some((i) => i.badge)) return null;
+  return <span className="absolute top-1 right-1 size-2.5 rounded-full bg-clay ring-2 ring-bg" aria-hidden />;
+}
+
+/** Slide-out drawer for phones: every destination plus wellbeing, theme, sign out and the credit. */
+function MoreDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { me } = useAuth();
   const { openBreathe } = useShell();
   const signOutNow = useSignOutNow();
+  const { items, hushed } = useNavItems();
+  const ref = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (open && !dialog.open) dialog.showModal();
+    if (!open && dialog.open) dialog.close();
+  }, [open]);
+
+  if (!me) return null;
   return (
-    <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-bg/85 px-4 py-2.5 backdrop-blur-md lg:hidden">
-      <Link to="/" aria-label="aSocial home" className="mr-auto">
-        <Logo small compact={!!me} />
-      </Link>
-      <button onClick={openBreathe} className="rounded-full p-2 text-muted hover:bg-surface-2" aria-label="Take a breath">
-        <Wind className="size-[18px]" />
-      </button>
-      <ThemeCycle />
-      {me ? (
-        <>
-          <span className="max-[369px]:hidden">
-            <SessionTimer compact />
-          </span>
-          <MobileLettersLink />
-          <BatteryPicker compact />
-          <Link to={`/u/${me.username}`} aria-label="Your profile" className="ml-1 rounded-full focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none">
-            <Avatar user={me} size="sm" />
-          </Link>
-          <button
-            type="button"
-            onClick={signOutNow}
-            aria-label="Sign out"
-            title="Sign out"
-            className="rounded-full p-2 text-muted hover:bg-clay-soft hover:text-clay focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
-          >
-            <LogOut className="size-[18px]" aria-hidden />
-          </button>
-        </>
-      ) : (
-        <Link to="/login">
-          <Button size="sm">Sign in</Button>
-        </Link>
-      )}
-    </header>
+    <dialog
+      ref={ref}
+      onClose={onClose}
+      onClick={(e) => e.target === ref.current && onClose()}
+      aria-label="Menu"
+      className="drawer m-0 ml-auto h-dvh max-h-none w-[min(20rem,86vw)] max-w-none overflow-visible bg-transparent p-0 text-ink backdrop:bg-black/40 backdrop:backdrop-blur-[2px]"
+    >
+      {open ? (
+        <div className="flex h-full flex-col overflow-y-auto overscroll-contain border-l border-line bg-bg pt-[max(1rem,env(safe-area-inset-top))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-4 shadow-2xl">
+          <div className="flex items-center gap-3 pb-4">
+            <Link to={`/u/${me.username}`} onClick={onClose} className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl p-1 hover:bg-surface-2">
+              <Avatar user={me} size="md" showBattery />
+              <span className="min-w-0">
+                <span className="block truncate font-semibold">{me.displayName}</span>
+                <span className="block truncate text-sm text-muted">@{me.username}</span>
+              </span>
+            </Link>
+            <button onClick={onClose} aria-label="Close menu" className="grid size-11 shrink-0 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-ink">
+              <X className="size-5" aria-hidden />
+            </button>
+          </div>
+          <nav aria-label="All pages" className="space-y-0.5 border-t border-line pt-3">
+            {items.map((item) => (
+              <NavLink
+                key={item.label}
+                to={item.to}
+                end={item.to === "/"}
+                onClick={onClose}
+                className={({ isActive }) =>
+                  clsx(
+                    "flex min-h-12 items-center gap-3.5 rounded-2xl px-3.5 text-[15px] transition-colors",
+                    isActive ? "bg-surface font-semibold text-ink ring-1 ring-line" : "text-ink-soft hover:bg-surface-2 hover:text-ink",
+                  )
+                }
+              >
+                <item.icon className="size-5" aria-hidden />
+                <span className="flex-1">{item.label}</span>
+                {item.badge ? (
+                  <span className="grid min-w-5 place-items-center rounded-full bg-clay px-1.5 text-[11px] font-semibold text-white">{item.badge > 9 ? "9+" : item.badge}</span>
+                ) : null}
+              </NavLink>
+            ))}
+          </nav>
+          <div className="mt-4 space-y-2 border-t border-line pt-4">
+            {hushed ? (
+              <p className="flex items-center gap-2 px-1 text-xs text-muted">
+                <Moon className="size-3.5" /> Notifications hushed while you recharge
+              </p>
+            ) : null}
+            <BatteryPicker />
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  onClose();
+                  openBreathe();
+                }}
+                className="flex min-h-11 flex-1 items-center gap-2 rounded-full px-3 text-sm text-muted hover:bg-surface-2 hover:text-ink"
+              >
+                <Wind className="size-4" aria-hidden /> Breathe
+              </button>
+              <SessionTimer />
+              <ThemeCycle />
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                signOutNow();
+              }}
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full text-sm font-medium text-muted ring-1 ring-line transition-colors hover:bg-clay-soft hover:text-clay hover:ring-clay/30"
+            >
+              <LogOut className="size-4" aria-hidden /> Sign out
+            </button>
+          </div>
+          <div className="mt-auto flex justify-center pt-6">
+            <CreditPill />
+          </div>
+        </div>
+      ) : null}
+    </dialog>
   );
 }
 
@@ -280,18 +443,6 @@ function useSignOutNow() {
     navigate("/", { replace: true });
     toast("Signed out. Come back whenever you like.");
   };
-}
-
-function MobileLettersLink() {
-  const { items } = useNavItems();
-  const letters = items.find((i) => i.label === "Letters");
-  if (!letters) return null;
-  return (
-    <NavLink to="/letters" aria-label="Letters" className={({ isActive }) => clsx("relative rounded-full p-2 hover:bg-surface-2", isActive ? "text-accent" : "text-muted")}>
-      <Mail className="size-[18px]" />
-      {letters.badge ? <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-clay ring-2 ring-bg" /> : null}
-    </NavLink>
-  );
 }
 
 function MobileNav() {
@@ -309,21 +460,24 @@ function MobileNav() {
       to={item.to}
       end={item.to === "/"}
       aria-label={item.label}
-      className={({ isActive }) => clsx("relative grid flex-1 place-items-center py-2.5", isActive ? "text-accent" : "text-muted")}
+      className={({ isActive }) =>
+        clsx("relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium", isActive ? "text-accent" : "text-muted")
+      }
     >
-      <item.icon className="size-6" />
-      {item.badge ? <span className="absolute top-2 right-[calc(50%-16px)] size-2 rounded-full bg-clay ring-2 ring-surface" /> : null}
+      <item.icon className="size-[22px]" aria-hidden />
+      <span aria-hidden>{item.label === "Notifications" ? "Alerts" : item.label}</span>
+      {item.badge ? <span className="absolute top-2 right-[calc(50%-15px)] size-2.5 rounded-full bg-clay ring-2 ring-surface" /> : null}
     </NavLink>
   );
 
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-30 flex items-center border-t border-line bg-surface/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 flex items-center border-t border-line bg-surface/95 px-[max(0.5rem,env(safe-area-inset-left))] pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
     >
       {left.map(renderItem)}
       <div className="grid flex-1 place-items-center">
-        <button onClick={openWrite} className="grid size-12 place-items-center rounded-full bg-accent text-on-accent shadow-lg active:scale-95" aria-label="Write">
+        <button onClick={openWrite} className="-mt-5 grid size-14 ring-4 ring-bg place-items-center rounded-full bg-accent text-on-accent shadow-lg active:scale-95" aria-label="Write">
           <PenLine className="size-5" />
         </button>
       </div>

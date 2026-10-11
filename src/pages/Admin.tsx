@@ -128,7 +128,7 @@ export function Admin() {
         }
         subtitle="Keep aSocial gentle. Every action here is visible only to moderators."
       />
-      <div role="tablist" aria-label="Moderation sections" className="mb-5 flex gap-1 overflow-x-auto rounded-full bg-surface-2 p-1">
+      <div role="tablist" aria-label="Moderation sections" className="mb-5 flex snap-x gap-1 overflow-x-auto overscroll-x-contain rounded-full bg-surface-2 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {TABS.map((t) => (
           <button
             key={t.key}
