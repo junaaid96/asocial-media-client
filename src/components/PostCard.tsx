@@ -111,7 +111,7 @@ export function PostCard({ post, expandComments = false }: { post: Post; expandC
                 {timeAgo(post.createdAt)}
               </Link>
               {post.editedAt ? <span title={fullDate(post.editedAt)}>· edited</span> : null}
-              {post.isMine ? <VisibilityBadge visibility={post.visibility} /> : null}
+              <VisibilityBadge visibility={post.visibility} mine={post.isMine} />
               {post.isAnonymous && post.isMine ? (
                 <span className="inline-flex items-center gap-1" title="Only you can see that this is yours">
                   · <EyeOff className="size-3.5" /> posted anonymously
