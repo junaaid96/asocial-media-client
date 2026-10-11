@@ -55,8 +55,14 @@ export function Messages() {
   }, [to, open]);
 
   return (
-    <div className="card flex h-[calc(100dvh-9.5rem)] min-h-[26rem] overflow-hidden lg:h-[calc(100dvh-5rem)]">
-      <ConversationList activeId={id} className={clsx("w-full md:flex md:w-64 md:shrink-0 md:border-r md:border-line", id ? "hidden" : "flex")} />
+    <div
+      className={clsx(
+        "card flex h-[calc(100dvh-10.5rem-env(safe-area-inset-bottom))] min-h-[24rem] overflow-hidden md:h-[calc(100dvh-4rem)] lg:h-[calc(100dvh-5rem)]",
+        // Phones: an open thread takes the whole screen (back button in its header), clear of notches and the home bar.
+        id && "max-md:fixed max-md:inset-0 max-md:z-40 max-md:h-dvh max-md:min-h-0 max-md:rounded-none max-md:border-0 max-md:pt-[env(safe-area-inset-top)] max-md:pb-[env(safe-area-inset-bottom)] max-md:pl-[env(safe-area-inset-left)] max-md:pr-[env(safe-area-inset-right)]",
+      )}
+    >
+      <ConversationList activeId={id} className={clsx("w-full md:flex md:w-60 md:shrink-0 lg:w-64 md:border-r md:border-line", id ? "hidden" : "flex")} />
       <section className={clsx("min-w-0 flex-1 flex-col", id ? "flex" : "hidden md:flex")} aria-label="Conversation">
         {id ? (
           <Thread key={id} id={id} />
@@ -379,7 +385,7 @@ function Thread({ id }: { id: string }) {
   return (
     <>
       <header className="flex items-center gap-3 border-b border-line px-3 py-2.5 sm:px-4">
-        <Link to="/messages" className="-ml-1 rounded-full p-2 text-muted hover:bg-surface-2 md:hidden" aria-label="Back to conversations">
+        <Link to="/messages" className="-ml-2 grid size-11 shrink-0 place-items-center rounded-full text-muted hover:bg-surface-2 md:hidden" aria-label="Back to conversations">
           <ArrowLeft className="size-5" />
         </Link>
         {other ? (
@@ -554,7 +560,7 @@ function Thread({ id }: { id: string }) {
             wrapperClassName="min-w-0 flex-1"
             className="field max-h-40 min-h-10 resize-none py-2 [field-sizing:content]"
           />
-          <Button type="submit" size="icon" disabled={!draft.trim()} aria-label="Send message">
+          <Button type="submit" size="icon" disabled={!draft.trim()} aria-label="Send message" className="pointer-coarse:size-11">
             <Send className="size-4" />
           </Button>
         </form>
