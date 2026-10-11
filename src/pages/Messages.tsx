@@ -15,7 +15,9 @@ import { Spinner } from "../components/ui/Spinner";
 import { api, errorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { type MessageCache, loadMessages, mergeMessages, newClientId } from "../lib/chat";
-import { fullDate, timeAgo } from "../lib/format";
+import { clockTime, dayLabel, fullDateTime, sameDay, sameGroup, shortAgo, stampLabel, timeAgo } from "../lib/format";
+import { useNow } from "../lib/useNow";
+import { onlineContacts } from "../lib/online";
 import { keys } from "../lib/queries";
 import { useIsTyping, usePresence, useRealtime } from "../lib/realtime";
 import type { ChatUser, Conversation, Message, ReportTarget } from "../lib/types";
@@ -83,7 +85,10 @@ function ConversationList({ activeId, className }: { activeId?: string; classNam
     <nav aria-label="Conversations" className={clsx("min-h-0 flex-col", className)}>
       <div className="flex items-center justify-between border-b border-line px-4 py-3.5">
         <h1 className="font-serif text-xl font-semibold">Messages</h1>
-        <ConnectionDot />
+        <span className="flex items-center gap-2">
+          <OnlineNow conversations={items} />
+          <ConnectionDot />
+        </span>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {conversations.isPending ? (
@@ -111,6 +116,7 @@ function ConversationList({ activeId, className }: { activeId?: string; classNam
 function ConversationRow({ conversation: c, active }: { conversation: Conversation; active: boolean }) {
   const presence = usePresence(c.other);
   const typing = useIsTyping(c.id);
+  const now = useNow();
   return (
     <Link
       to={`/messages/${c.id}`}
@@ -121,7 +127,11 @@ function ConversationRow({ conversation: c, active }: { conversation: Conversati
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline gap-2">
           <span className={clsx("truncate text-sm", c.unread ? "font-semibold" : "font-medium")}>{c.other.displayName}</span>
-          {c.lastMessage ? <span className="ml-auto shrink-0 text-[11px] text-muted">{timeAgo(c.lastMessage.createdAt)}</span> : null}
+          {c.lastMessage ? (
+            <time dateTime={c.lastMessage.createdAt} title={fullDateTime(c.lastMessage.createdAt)} className="ml-auto shrink-0 text-[11px] text-muted tabular-nums">
+              {shortAgo(c.lastMessage.createdAt, now)}
+            </time>
+          ) : null}
         </span>
         <span className="flex items-center gap-2">
           <span className={clsx("truncate text-xs", c.unread ? "text-ink" : "text-muted")}>
@@ -136,6 +146,49 @@ function ConversationRow({ conversation: c, active }: { conversation: Conversati
         </span>
       </span>
     </Link>
+  );
+}
+
+/** "N online" for the user's chat contacts, with an expandable list. Updates live with presence. */
+function OnlineNow({ conversations }: { conversations: Conversation[] }) {
+  const { presence } = useRealtime();
+  const [open, setOpen] = useState(false);
+  const online = onlineContacts(conversations, presence);
+  const listId = "online-now-list";
+  if (!conversations.length) return null;
+  return (
+    <span className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls={open ? listId : undefined}
+        disabled={!online.length}
+        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium text-muted transition-colors enabled:hover:bg-surface-2 enabled:hover:text-ink"
+        title="Your chat contacts who are online now"
+        data-testid="online-count"
+      >
+        <span className={clsx("size-2 rounded-full", online.length ? "bg-emerald-500" : "bg-line")} aria-hidden />
+        <span aria-live="polite">{online.length} online</span>
+      </button>
+      {open && online.length ? (
+        <div id={listId} className="card absolute right-0 z-30 mt-1 w-52 max-w-[calc(100vw-2rem)] animate-rise p-1.5" role="region" aria-label="Online now">
+          <ul>
+            {online.map((c) => (
+              <li key={c.id}>
+                <Link to={`/messages/${c.id}`} onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 hover:bg-surface-2">
+                  <PresenceAvatar user={c.other} online />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{c.other.displayName}</span>
+                    <span className="block truncate text-xs text-muted">@{c.other.username}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </span>
   );
 }
 
@@ -184,6 +237,7 @@ function Thread({ id }: { id: string }) {
   const [draft, setDraft] = useState("");
   const [report, setReport] = useState<ReportTarget | null>(null);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
+  const [shownTime, setShownTime] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const preserveFrom = useRef<number | null>(null);
@@ -320,6 +374,7 @@ function Thread({ id }: { id: string }) {
   }
 
   const lastMine = [...items].reverse().find((m) => m.sender === me?.username);
+  const now = useNow();
 
   return (
     <>
@@ -380,11 +435,25 @@ function Thread({ id }: { id: string }) {
               <p className="mt-10 text-center text-sm text-muted">No messages yet. A gentle hello goes a long way.</p>
             )}
             <ol className="space-y-1.5">
-              {items.map((m, i) => {
+              {items.flatMap((m, i) => {
                 const mine = m.sender === me?.username;
-                const grouped = items[i - 1]?.sender === m.sender;
-                return (
-                  <li key={m.clientId ?? m.id} className={clsx("group flex items-end gap-1.5", mine ? "justify-end" : "justify-start", !grouped && i > 0 && "pt-2")}>
+                const prev = items[i - 1];
+                const newDay = !prev || !sameDay(prev.createdAt, m.createdAt);
+                const grouped = !newDay && sameGroup(prev, m);
+                // One time per group of messages: on the last one (and always on failed/selected ones).
+                const endsGroup = !sameGroup(m, items[i + 1]);
+                const showTime = endsGroup || shownTime === (m.clientId ?? m.id);
+                const separator = newDay ? (
+                  <li key={`day-${m.createdAt.slice(0, 10)}-${i}`} role="separator" aria-label={dayLabel(m.createdAt, now)} className="flex items-center gap-3 py-3">
+                    <span className="h-px flex-1 bg-line" aria-hidden />
+                    <time dateTime={m.createdAt.slice(0, 10)} className="rounded-full bg-surface-2 px-2.5 py-0.5 text-[11px] font-medium text-muted" data-testid="day-separator">
+                      {dayLabel(m.createdAt, now)}
+                    </time>
+                    <span className="h-px flex-1 bg-line" aria-hidden />
+                  </li>
+                ) : null;
+                const row = (
+                  <li key={m.clientId ?? m.id} className={clsx("group flex items-end gap-1.5", mine ? "justify-end" : "justify-start", !grouped && !newDay && i > 0 && "pt-2")}>
                     {!mine && !m.pending ? (
                       <button
                         onClick={() => setReport({ targetType: "message", messageId: m.id })}
@@ -397,7 +466,12 @@ function Thread({ id }: { id: string }) {
                     ) : null}
                     <div className={clsx("max-w-[80%] sm:max-w-[70%]", mine && "text-right")}>
                       <div
-                        title={fullDate(m.createdAt)}
+                        title={fullDateTime(m.createdAt)}
+                        // Touch screens have no hover: tapping a bubble shows its time.
+                        onClick={(e) => {
+                          if ((e.target as HTMLElement).closest("a")) return;
+                          setShownTime((cur) => (cur === (m.clientId ?? m.id) ? null : (m.clientId ?? m.id)));
+                        }}
                         className={clsx(
                           "inline-block rounded-2xl px-3.5 py-2 text-left text-[15px] leading-relaxed",
                           mine ? "rounded-br-md bg-accent text-on-accent [&_a]:text-on-accent [&_code]:bg-black/15 [&_code]:text-on-accent" : "rounded-bl-md bg-surface-2 text-ink",
@@ -406,17 +480,43 @@ function Thread({ id }: { id: string }) {
                         )}
                       >
                         <RichText text={m.body} compact />
+                        <span className="sr-only">, sent {fullDateTime(m.createdAt)}</span>
                       </div>
                       {m.pending === "failed" ? (
                         <button onClick={() => retry(m)} className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-clay hover:underline">
                           <RotateCw className="size-3" /> Not sent. Tap to retry
                         </button>
-                      ) : mine && m === lastMine ? (
-                        <p className="mt-0.5 text-[11px] text-muted">{m.pending ? "Sending…" : m.readAt ? `Seen ${timeAgo(m.readAt)}` : "Sent"}</p>
+                      ) : showTime || (mine && m === lastMine) ? (
+                        <p className="mt-0.5 px-1 text-[11px] text-muted tabular-nums" aria-hidden={!(mine && m === lastMine) || undefined}>
+                          {m.pending === "sending" ? (
+                            "Sending…"
+                          ) : (
+                            <>
+                              {showTime ? (
+                                <time dateTime={m.createdAt} title={fullDateTime(m.createdAt)} data-testid="message-time">
+                                  {clockTime(m.createdAt)}
+                                </time>
+                              ) : null}
+                              {mine && m === lastMine ? (
+                                <>
+                                  {showTime ? " · " : null}
+                                  {m.readAt ? (
+                                    <span title={fullDateTime(m.readAt)} data-testid="receipt">
+                                      Seen {stampLabel(m.readAt, now)}
+                                    </span>
+                                  ) : (
+                                    <span data-testid="receipt">Sent</span>
+                                  )}
+                                </>
+                              ) : null}
+                            </>
+                          )}
+                        </p>
                       ) : null}
                     </div>
                   </li>
                 );
+                return separator ? [separator, row] : [row];
               })}
             </ol>
             {typing ? (
