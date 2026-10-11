@@ -48,3 +48,13 @@ describe("ably presence watch list", () => {
     expect(partnersToWatch(new Set(["a", "b"]), partners, 2)).toEqual([]);
   });
 });
+
+import { visibilityDescription } from "../components/VisibilityPicker";
+describe("post privacy badge", () => {
+  it("describes who can see a post, for any viewer", () => {
+    expect(visibilityDescription("public")).toBe("Visible to everyone");
+    expect(visibilityDescription("followers")).toBe("Visible to followers");
+    expect(visibilityDescription("followers", true)).toBe("Visible to your followers");
+    expect(visibilityDescription("private", true)).toBe("Visible only to you");
+  });
+});

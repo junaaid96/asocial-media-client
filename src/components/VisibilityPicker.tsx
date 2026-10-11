@@ -39,22 +39,32 @@ export function VisibilityPicker({ value, onChange, name }: { value: Visibility;
   );
 }
 
-/** Labelled badge on your own posts showing who can see them. */
-export function VisibilityBadge({ visibility }: { visibility: Visibility | null | undefined }) {
+/** Who can see a post, shown to everyone who can see it: a subtle icon + label. */
+export function VisibilityBadge({ visibility, mine = false }: { visibility: Visibility | null | undefined; mine?: boolean }) {
   // Unknown or missing (e.g. an older API) means the server didn't say: show nothing rather than guess.
   const meta = visibility ? VISIBILITY[visibility] : undefined;
-  if (!meta) return null;
+  if (!meta || !visibility) return null;
+  const description = visibilityDescription(visibility, mine);
   return (
     <span
       className={clsx(
         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1",
         visibility === "public" ? "bg-surface-2 text-ink-soft ring-line" : "bg-accent-soft text-accent-strong ring-accent/30",
       )}
-      title={`Who can see this: ${meta.label}. ${meta.hint}`}
+      title={description}
+      aria-label={description}
+      role="img"
+      data-testid="visibility-badge"
+      data-visibility={visibility}
     >
       <meta.icon className="size-3.5" aria-hidden />
-      <span className="sr-only">Visible to: </span>
-      {meta.label}
+      <span aria-hidden>{meta.label}</span>
     </span>
   );
+}
+
+export function visibilityDescription(visibility: Visibility, mine = false): string {
+  if (visibility === "public") return "Visible to everyone";
+  if (visibility === "followers") return mine ? "Visible to your followers" : "Visible to followers";
+  return "Visible only to you";
 }
