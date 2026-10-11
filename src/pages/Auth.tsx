@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { ArrowLeft, FlaskConical, Shield, UserRound } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -70,21 +70,13 @@ function useAfterAuth() {
   };
 }
 
-// Public, read-only demo accounts (the server blocks posting, messaging and moderation for them).
-const DEMO_PASSWORD = "aSocialDemo!2026";
-const DEMO_ACCOUNTS = [
-  { username: "demo_member", label: "Member", Icon: UserRound },
-  { username: "demo_admin", label: "Admin", Icon: Shield },
-];
-
 export function Login() {
   const { me } = useAuth();
   const done = useAfterAuth();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const login = useMutation({
-    mutationFn: (creds?: { identifier: string; password: string }) =>
-      api<{ token: string; user: Me }>("/auth/login", { method: "POST", body: creds ?? { identifier, password } }),
+    mutationFn: () => api<{ token: string; user: Me }>("/auth/login", { method: "POST", body: { identifier, password } }),
     onSuccess: ({ token, user }) => done(token, user, `Welcome back, ${user.displayName.split(" ")[0]}`),
     onError: (error) => toast.error(errorMessage(error)),
   });
@@ -106,7 +98,7 @@ export function Login() {
         className="space-y-4"
         onSubmit={(e: FormEvent) => {
           e.preventDefault();
-          login.mutate(undefined);
+          login.mutate();
         }}
       >
         <div>
@@ -125,35 +117,6 @@ export function Login() {
           Sign in
         </Button>
       </form>
-      <div className="mt-6 rounded-2xl border border-dashed border-line p-4">
-        <p className="flex items-center gap-2 text-sm font-semibold">
-          <FlaskConical className="size-4 text-accent" aria-hidden="true" />
-          Explore the demo
-        </p>
-        <p className="mt-1 text-xs text-muted">
-          One click signs you in to a read-only demo. Password for both: <code className="font-mono">{DEMO_PASSWORD}</code>
-        </p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {DEMO_ACCOUNTS.map(({ username, label, Icon }) => (
-            <Button
-              key={username}
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="w-full"
-              disabled={login.isPending}
-              onClick={() => {
-                setIdentifier(username);
-                setPassword(DEMO_PASSWORD);
-                login.mutate({ identifier: username, password: DEMO_PASSWORD });
-              }}
-            >
-              <Icon className="size-4" aria-hidden="true" />
-              {label}
-            </Button>
-          ))}
-        </div>
-      </div>
     </AuthLayout>
   );
 }
