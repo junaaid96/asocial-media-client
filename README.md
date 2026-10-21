@@ -43,7 +43,7 @@ their time.
 - **Admins**: there's no built-in admin login. Promote an account on the API with
   `npm run admin:promote -- <username-or-email>`, then `/admin` appears for it.
 - **Credit**: a "Developed by `<CodeJBorg />`" pill at the bottom of the sign-in pages and in the app shell.
-- Search (people + full-text posts), saved posts, replies, notifications, profile photos, light/dark themes,
+- Search (people + full-text posts), saved posts, replies, notifications, profile photos,
   a mobile layout with bottom navigation, and accessible dialogs and focus states.
 
 ## Stack
