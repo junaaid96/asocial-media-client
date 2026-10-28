@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ReportDialog } from "../components/ReportDialog";
 import { RichEditor } from "../components/RichEditor";
 import { RichText, plainText } from "../components/RichText";
+import { VerifiedBadge } from "../components/VerifiedBadge";
 import { Avatar } from "../components/ui/Avatar";
 import { Button } from "../components/ui/Button";
 import { Menu, MenuItem } from "../components/ui/Menu";
@@ -132,7 +133,10 @@ function ConversationRow({ conversation: c, active }: { conversation: Conversati
       <PresenceAvatar user={c.other} online={presence.online} />
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline gap-2">
-          <span className={clsx("truncate text-sm", c.unread ? "font-semibold" : "font-medium")}>{c.other.displayName}</span>
+          <span className={clsx("flex min-w-0 items-center gap-1 text-sm", c.unread ? "font-semibold" : "font-medium")}>
+            <span className="truncate">{c.other.displayName}</span>
+            <VerifiedBadge user={c.other} size="xs" />
+          </span>
           {c.lastMessage ? (
             <time dateTime={c.lastMessage.createdAt} title={fullDateTime(c.lastMessage.createdAt)} className="ml-auto shrink-0 text-[11px] text-muted tabular-nums">
               {shortAgo(c.lastMessage.createdAt, now)}
@@ -185,7 +189,10 @@ function OnlineNow({ conversations }: { conversations: Conversation[] }) {
                 <Link to={`/messages/${c.id}`} onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 hover:bg-surface-2">
                   <PresenceAvatar user={c.other} online />
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium">{c.other.displayName}</span>
+                    <span className="flex items-center gap-1 text-sm font-medium">
+                      <span className="truncate">{c.other.displayName}</span>
+                      <VerifiedBadge user={c.other} size="xs" />
+                    </span>
                     <span className="block truncate text-xs text-muted">@{c.other.username}</span>
                   </span>
                 </Link>
@@ -393,7 +400,10 @@ function Thread({ id }: { id: string }) {
             <Link to={`/u/${other.username}`} className="flex min-w-0 flex-1 items-center gap-3">
               <PresenceAvatar user={other} online={presence.online} />
               <span className="min-w-0">
-                <span className="block truncate font-semibold">{other.displayName}</span>
+                <span className="flex items-center gap-1 font-semibold">
+                  <span className="truncate">{other.displayName}</span>
+                  <VerifiedBadge user={other} size="xs" />
+                </span>
                 <span className="block truncate text-xs text-muted" aria-live="polite">
                   {typing ? <span className="text-accent">typing…</span> : presenceLabel(presence.online, presence.lastSeenAt)}
                 </span>

@@ -5,12 +5,44 @@ export type LettersFrom = "everyone" | "following" | "nobody";
 export type Pace = "breeze" | "afternoon" | "overnight";
 export type Visibility = "public" | "followers" | "private";
 export type Role = "user" | "admin";
+export type RelationshipLabel = "single" | "in_a_relationship" | "engaged" | "married" | "partnered";
 
 export interface PublicUser {
   username: string;
   displayName: string;
   avatarUrl: string | null;
   battery: Battery;
+  verified: boolean;
+  verifiedLabel: string | null;
+}
+
+/** What a profile shows for relationship status. Partnered labels only appear after both confirm. */
+export interface RelationshipInfo {
+  label: string;
+  partner: PublicUser | null;
+}
+
+export interface RelationshipDetail {
+  id: string;
+  label: string;
+  status: "pending" | "confirmed";
+  createdAt: string;
+  outgoing: boolean;
+  other: PublicUser;
+}
+
+export interface RelationshipState {
+  solo: "single" | null;
+  confirmed: RelationshipDetail | null;
+  outgoing: RelationshipDetail | null;
+  incoming: RelationshipDetail[];
+}
+
+export interface VerificationState {
+  verified: boolean;
+  verifiedLabel: string | null;
+  pending: { id: string; note: string; createdAt: string } | null;
+  lastDecision: { status: string; resolvedAt: string | null } | null;
 }
 
 export interface PersonSummary extends PublicUser {
@@ -37,6 +69,7 @@ export interface Me extends Profile {
   dailyLimitMinutes: number | null;
   /** Older servers don't send this. */
   sessionReminderMinutes?: number | null;
+  relationshipLabel: string | null;
 }
 
 export interface ProfileResponse {
@@ -46,6 +79,7 @@ export interface ProfileResponse {
   suspended: boolean;
   isFollowing: boolean;
   followsMe: boolean;
+  relationship: RelationshipInfo | null;
   stats: { posts: number; followers: number | null; following: number | null };
 }
 
@@ -104,7 +138,17 @@ export interface Letter {
 
 export interface Notification {
   id: string;
-  type: "reaction" | "comment" | "follow" | "letter" | "mention" | "comment_reaction" | "report_update" | "moderation";
+  type:
+    | "reaction"
+    | "comment"
+    | "follow"
+    | "letter"
+    | "mention"
+    | "comment_reaction"
+    | "report_update"
+    | "moderation"
+    | "verification"
+    | "relationship";
   createdAt: string;
   read: boolean;
   actor: PublicUser | null;

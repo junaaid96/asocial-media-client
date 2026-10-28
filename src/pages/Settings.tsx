@@ -1,21 +1,25 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
-import { Camera, Hourglass, Monitor, Moon, ShieldCheck, Sun, Timer } from "lucide-react";
+import { BadgeCheck, Camera, Heart, Hourglass, Monitor, Moon, ShieldCheck, Sun, Timer } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { PageHeader } from "../components/AppShell";
 import { useSetBattery } from "../components/BatteryPicker";
+import { VerifiedBadge } from "../components/VerifiedBadge";
 import { Avatar } from "../components/ui/Avatar";
 import { Button } from "../components/ui/Button";
 import { Dialog } from "../components/ui/Dialog";
 import { BatteryIcon } from "../components/ui/misc";
+import { PageSpinner } from "../components/ui/Spinner";
 import { api, errorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { timeAgo } from "../lib/format";
 import { uploadImage } from "../lib/image";
-import { BATTERY, BATTERY_KEYS } from "../lib/meta";
+import { BATTERY, BATTERY_KEYS, RELATIONSHIPS, RELATIONSHIP_KEYS, relationshipLabel } from "../lib/meta";
+import { useRelationship, useVerification } from "../lib/queries";
 import { type ThemeChoice, useTheme } from "../lib/theme";
-import type { LettersFrom, Me } from "../lib/types";
+import type { LettersFrom, Me, PublicUser, RelationshipDetail, RelationshipLabel } from "../lib/types";
 import { type UsageDay, formatDuration, localDay, usageKey, useUsage } from "../lib/usage";
 
 function Section({ title, description, children, id }: { title: string; description?: string; children: ReactNode; id?: string }) {
@@ -56,6 +60,8 @@ export function Settings() {
     <div className="space-y-5">
       <PageHeader title="Settings" subtitle="Make aSocial feel like your own quiet room." />
       <ProfileForm me={me} />
+      <VerificationSettings me={me} />
+      <RelationshipSettings />
       <PresenceSettings me={me} />
       {usage.available ? <TimeSettings me={me} /> : null}
       <AppearanceSettings />
@@ -195,6 +201,419 @@ function ProfileForm({ me }: { me: Me }) {
         </div>
       </form>
     </Section>
+  );
+}
+
+function VerificationSettings({ me }: { me: Me }) {
+  const queryClient = useQueryClient();
+  const state = useVerification();
+  const [note, setNote] = useState("");
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["verification", "me"] });
+    queryClient.invalidateQueries({ queryKey: ["me"] });
+    queryClient.invalidateQueries({ queryKey: ["profile"] });
+  };
+  const request = useMutation({
+    mutationFn: () => api("/me/verification", { method: "POST", body: { note } }),
+    onSuccess: () => {
+      setNote("");
+      refresh();
+      toast("Request sent. Moderators review by hand, so it may take a little while.");
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+  const cancel = useMutation({
+    mutationFn: () => api("/me/verification", { method: "DELETE" }),
+    onSuccess: () => {
+      refresh();
+      toast("Request withdrawn");
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+
+  return (
+    <Section
+      id="verification"
+      title="Verification"
+      description="A small badge next to your name that tells people you're really you. Only moderators can grant it."
+    >
+      {me.role === "admin" ? (
+        <p className="flex items-center gap-2 rounded-xl bg-accent-soft/60 px-3 py-2.5 text-sm text-ink-soft">
+          <BadgeCheck className="size-4 shrink-0 text-accent" aria-hidden />
+          You're a moderator, so you're verified automatically.
+        </p>
+      ) : state.isPending ? (
+        <PageSpinner />
+      ) : state.data?.verified ? (
+        <div className="flex items-start gap-3 rounded-xl bg-accent-soft/60 px-3 py-2.5 text-sm">
+          <VerifiedBadge user={state.data} size="md" className="mt-0.5" />
+          <div>
+            <p className="font-medium">
+              You're verified{state.data.verifiedLabel ? ` · ${state.data.verifiedLabel}` : ""}
+            </p>
+            <p className="mt-0.5 text-muted">The badge appears next to your name everywhere on aSocial. It stays unless moderators remove it.</p>
+          </div>
+        </div>
+      ) : state.data?.pending ? (
+        <div className="space-y-3">
+          <p className="rounded-xl bg-surface-2 px-3 py-2.5 text-sm text-ink-soft">
+            Request sent {timeAgo(state.data.pending.createdAt)}. We'll notify you as soon as moderators decide — nothing to do meanwhile.
+          </p>
+          <Button size="sm" variant="ghost" loading={cancel.isPending} onClick={() => cancel.mutate()}>
+            Withdraw request
+          </Button>
+        </div>
+      ) : (
+        <form
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            request.mutate();
+          }}
+        >
+          {state.data?.lastDecision?.status === "rejected" ? (
+            <p className="rounded-xl bg-surface-2 px-3 py-2.5 text-sm text-ink-soft">
+              Your last request wasn't approved. You're welcome to try again — a little context about who you are helps a lot.
+            </p>
+          ) : null}
+          <div>
+            <label className="label" htmlFor="verify-note">
+              Who are you? <span className="font-normal text-muted">(optional, only moderators see this)</span>
+            </label>
+            <textarea
+              id="verify-note"
+              className="field resize-y"
+              rows={3}
+              maxLength={500}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="e.g. I write under this name elsewhere, here's my website…"
+            />
+          </div>
+          <div className="flex justify-end">
+            <Button type="submit" loading={request.isPending}>
+              Request verification
+            </Button>
+          </div>
+        </form>
+      )}
+    </Section>
+  );
+}
+
+function RelationshipSettings() {
+  const queryClient = useQueryClient();
+  const state = useRelationship();
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["relationship", "me"] });
+    queryClient.invalidateQueries({ queryKey: ["profile"] });
+    queryClient.invalidateQueries({ queryKey: ["summary"] });
+  };
+  const solo = useMutation({
+    mutationFn: (label: "single" | null) => api("/me/relationship/solo", { method: "PUT", body: { label } }),
+    onSuccess: (_d, label) => {
+      refresh();
+      toast(label ? "Profile updated" : "Relationship status hidden");
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+  const confirmReq = useMutation({
+    mutationFn: (id: string) => api(`/me/relationship/${id}/confirm`, { method: "POST" }),
+    onSuccess: () => {
+      refresh();
+      toast("It now shows on both profiles");
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+  const decline = useMutation({
+    mutationFn: (id: string) => api(`/me/relationship/${id}/decline`, { method: "POST" }),
+    onSuccess: () => {
+      refresh();
+      toast("Request declined — nothing is shown");
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+  const remove = useMutation({
+    mutationFn: () => api("/me/relationship", { method: "DELETE" }),
+    onSuccess: () => {
+      refresh();
+      toast("Removed from both profiles");
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+
+  const data = state.data;
+  const busy = data?.confirmed ?? data?.outgoing;
+
+  return (
+    <Section
+      id="relationship"
+      title="Relationship status"
+      description="Solo statuses show right away. Partnered ones only appear once you both confirm — either of you can remove them at any time."
+    >
+      {state.isPending || !data ? (
+        <PageSpinner />
+      ) : (
+        <div className="space-y-5">
+          {data.incoming.length ? (
+            <div className="space-y-2">
+              <p className="label">Waiting for your answer</p>
+              <ul className="space-y-2">
+                {data.incoming.map((req) => (
+                  <IncomingRequest
+                    key={req.id}
+                    req={req}
+                    confirming={confirmReq.isPending && confirmReq.variables === req.id}
+                    declining={decline.isPending && decline.variables === req.id}
+                    onConfirm={() => confirmReq.mutate(req.id)}
+                    onDecline={() => decline.mutate(req.id)}
+                  />
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {data.confirmed ? (
+            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-line p-4">
+              <Avatar user={data.confirmed.other} />
+              <div className="min-w-0 flex-1">
+                <p className="flex flex-wrap items-center gap-x-1.5 text-[15px]">
+                  <Heart className="size-4 text-clay" aria-hidden />
+                  <span>
+                    {relationshipLabel(data.confirmed.label)} with{" "}
+                    <Link to={`/u/${data.confirmed.other.username}`} className="font-medium text-accent hover:underline">
+                      @{data.confirmed.other.username}
+                    </Link>
+                  </span>
+                </p>
+                <p className="mt-0.5 text-sm text-muted">Showing on both profiles.</p>
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={remove.isPending}
+                onClick={() => window.confirm("Remove this from both profiles? The other person will be told.") && remove.mutate()}
+              >
+                Remove
+              </Button>
+            </div>
+          ) : data.outgoing ? (
+            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-line p-4">
+              <Avatar user={data.outgoing.other} />
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px]">
+                  {relationshipLabel(data.outgoing.label)} with{" "}
+                  <span className="font-medium">@{data.outgoing.other.username}</span> — waiting for them to confirm.
+                </p>
+                <p className="mt-0.5 text-sm text-muted">Nothing shows on either profile until you both agree.</p>
+              </div>
+              <Button size="sm" variant="ghost" loading={remove.isPending} onClick={() => remove.mutate()}>
+                Withdraw
+              </Button>
+            </div>
+          ) : (
+            <NewRelationshipRequest
+              onSent={() => {
+                refresh();
+                toast("Request sent. They can confirm or decline.");
+              }}
+            />
+          )}
+
+          <div>
+            <p className="label">Or show a solo status</p>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Solo relationship status">
+              {(
+                [
+                  { value: null, label: "Not shown" },
+                  { value: "single", label: "Single" },
+                ] as const
+              ).map((option) => (
+                <button
+                  key={option.label}
+                  role="radio"
+                  aria-checked={data.solo === option.value}
+                  disabled={!!busy || !!data.incoming.length || solo.isPending}
+                  onClick={() => data.solo !== option.value && solo.mutate(option.value)}
+                  className={clsx(
+                    "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                    data.solo === option.value
+                      ? "border-accent bg-accent-soft text-accent-strong"
+                      : "border-line hover:bg-surface-2 disabled:opacity-50",
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            {busy || data.incoming.length ? (
+              <p className="mt-2 text-xs text-muted">Available once your current request is settled.</p>
+            ) : (
+              <p className="mt-2 text-xs text-muted">Solo statuses appear on your profile immediately.</p>
+            )}
+          </div>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+function IncomingRequest({
+  req,
+  confirming,
+  declining,
+  onConfirm,
+  onDecline,
+}: {
+  req: RelationshipDetail;
+  confirming: boolean;
+  declining: boolean;
+  onConfirm: () => void;
+  onDecline: () => void;
+}) {
+  return (
+    <li className="flex flex-wrap items-center gap-3 rounded-2xl bg-accent-soft/60 p-4">
+      <Avatar user={req.other} />
+      <div className="min-w-0 flex-1">
+        <p className="text-[15px]">
+          <Link to={`/u/${req.other.username}`} className="font-medium hover:underline">
+            @{req.other.username}
+          </Link>{" "}
+          wants to show “{relationshipLabel(req.label)}” with you.
+        </p>
+        <p className="mt-0.5 text-sm text-muted">Sent {timeAgo(req.createdAt)} · only accept if you both agree.</p>
+      </div>
+      <div className="flex gap-2">
+        <Button size="sm" loading={confirming} onClick={onConfirm}>
+          Confirm
+        </Button>
+        <Button size="sm" variant="secondary" loading={declining} onClick={onDecline}>
+          Decline
+        </Button>
+      </div>
+    </li>
+  );
+}
+
+function NewRelationshipRequest({ onSent }: { onSent: () => void }) {
+  const [label, setLabel] = useState<RelationshipLabel>("in_a_relationship");
+  const [username, setUsername] = useState("");
+  const send = useMutation({
+    mutationFn: () => api("/me/relationship", { method: "POST", body: { label, partnerUsername: username } }),
+    onSuccess: () => {
+      setUsername("");
+      onSent();
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (username.trim()) send.mutate();
+      }}
+    >
+      <div>
+        <p className="label">Share a status with someone</p>
+        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Relationship status">
+          {RELATIONSHIP_KEYS.filter((key) => RELATIONSHIPS[key].needsPartner).map((key) => (
+            <button
+              key={key}
+              type="button"
+              role="radio"
+              aria-checked={label === key}
+              onClick={() => setLabel(key)}
+              className={clsx(
+                "rounded-2xl border p-3 text-left text-sm font-medium transition-colors",
+                label === key ? "border-accent bg-accent-soft text-accent-strong" : "border-line hover:bg-surface-2",
+              )}
+            >
+              {RELATIONSHIPS[key].label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <label className="label" htmlFor="partner-username">
+          With whom?
+        </label>
+        <PartnerPicker value={username} onChange={setUsername} />
+        <p className="mt-2 text-xs text-muted">They'll get a notification and can confirm or decline. Nothing appears until you both agree.</p>
+      </div>
+      <div className="flex justify-end">
+        <Button type="submit" loading={send.isPending} disabled={!username.trim()}>
+          Send request
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/** Username field with autocomplete, so requests rarely go to the wrong person. */
+function PartnerPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setQuery(value.trim().replace(/^@/, "")), 250);
+    return () => clearTimeout(timer);
+  }, [value]);
+  const lookup = useQuery({
+    queryKey: ["users", "lookup", query],
+    queryFn: () => api<{ items: PublicUser[] }>("/users/lookup", { query: { q: query } }).then((r) => r.items),
+    enabled: open && query.length >= 2,
+    staleTime: 30_000,
+  });
+  const items = lookup.data ?? [];
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-muted">@</span>
+      <input
+        id="partner-username"
+        className="field pl-8"
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""));
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder="username"
+        autoComplete="off"
+        role="combobox"
+        aria-expanded={open && items.length > 0}
+        aria-controls="partner-options"
+        aria-autocomplete="list"
+      />
+      {open && items.length > 0 ? (
+        <ul id="partner-options" role="listbox" className="card absolute inset-x-0 z-20 mt-1 max-h-60 overflow-auto p-1.5">
+          {items.map((person) => (
+            <li key={person.username}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={value === person.username}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onChange(person.username);
+                  setOpen(false);
+                }}
+                className="flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left hover:bg-surface-2"
+              >
+                <Avatar user={person} size="xs" />
+                <span className="min-w-0">
+                  <span className="flex items-center gap-1 text-sm font-medium">
+                    <span className="truncate">{person.displayName}</span>
+                    <VerifiedBadge user={person} size="xs" />
+                  </span>
+                  <span className="block truncate text-xs text-muted">@{person.username}</span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
   );
 }
 

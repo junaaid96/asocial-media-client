@@ -1,4 +1,4 @@
-import type { Battery, Mood, Pace, ReactionKind } from "./types";
+import type { Battery, Mood, Pace, ReactionKind, RelationshipLabel } from "./types";
 
 export const MOODS: Record<Mood, { label: string; emoji: string; color: string }> = {
   calm: { label: "Calm", emoji: "🌊", color: "#5b8fb9" },
@@ -36,6 +36,21 @@ export const PACES: Record<Pace, { label: string; eta: string; description: stri
   afternoon: { label: "By afternoon", eta: "~3 hours", description: "Time for it to settle" },
   overnight: { label: "Overnight", eta: "~12 hours", description: "Wakes them up gently" },
 };
+
+export const RELATIONSHIPS: Record<RelationshipLabel, { label: string; hint: string; needsPartner: boolean }> = {
+  single: { label: "Single", hint: "Shows on your profile right away", needsPartner: false },
+  in_a_relationship: { label: "In a relationship", hint: "Shows once your partner confirms", needsPartner: true },
+  partnered: { label: "Partnered", hint: "Shows once your partner confirms", needsPartner: true },
+  engaged: { label: "Engaged", hint: "Shows once your partner confirms", needsPartner: true },
+  married: { label: "Married", hint: "Shows once your partner confirms", needsPartner: true },
+};
+
+export const RELATIONSHIP_KEYS = Object.keys(RELATIONSHIPS) as RelationshipLabel[];
+
+/** "in_a_relationship" -> "In a relationship"; unknown values pass through untouched. */
+export function relationshipLabel(label: string): string {
+  return (RELATIONSHIPS as Record<string, { label: string }>)[label]?.label ?? label;
+}
 
 export function tint(color: string, percent: number) {
   return `color-mix(in oklab, ${color} ${percent}%, transparent)`;

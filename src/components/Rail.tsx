@@ -5,6 +5,7 @@ import { useAuth } from "../lib/auth";
 import { usePrompt, useResonating, useSuggested } from "../lib/queries";
 import { FollowButton } from "./FollowButton";
 import { plainText } from "./RichText";
+import { VerifiedBadge } from "./VerifiedBadge";
 import { Avatar } from "./ui/Avatar";
 import { MoodChip, SectionTitle } from "./ui/misc";
 
@@ -98,8 +99,9 @@ export function KindredSpirits() {
               <Avatar user={person} size="sm" showBattery />
             </Link>
             <div className="min-w-0 flex-1">
-              <Link to={`/u/${person.username}`} className="block truncate text-sm font-semibold hover:underline">
-                {person.displayName}
+              <Link to={`/u/${person.username}`} className="flex items-center gap-1 text-sm font-semibold hover:underline">
+                <span className="truncate">{person.displayName}</span>
+                <VerifiedBadge user={person} size="xs" />
               </Link>
               <p className="truncate text-xs text-muted">{person.sharedMoods ? "Writes in moods like yours" : `@${person.username}`}</p>
             </div>

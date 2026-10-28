@@ -15,6 +15,7 @@ import { RichText } from "./RichText";
 import { Avatar } from "./ui/Avatar";
 import { Button } from "./ui/Button";
 import { Spinner } from "./ui/Spinner";
+import { VerifiedBadge } from "./VerifiedBadge";
 
 export function CommentThread({ post }: { post: Post }) {
   const { me } = useAuth();
@@ -143,8 +144,9 @@ function CommentItem({ comment, postId, onDeleted }: { comment: Comment; postId:
         <div className="rounded-2xl rounded-tl-md bg-surface px-3.5 py-2.5 ring-1 ring-line">
           <div className="flex flex-wrap items-baseline gap-x-2 text-sm">
             {comment.author ? (
-              <Link to={`/u/${comment.author.username}`} className="font-semibold hover:underline">
+              <Link to={`/u/${comment.author.username}`} className="inline-flex items-center gap-1 font-semibold hover:underline">
                 {comment.author.displayName}
+                <VerifiedBadge user={comment.author} size="xs" />
               </Link>
             ) : (
               <span className="font-semibold">A quiet soul</span>

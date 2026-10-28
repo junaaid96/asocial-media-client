@@ -21,6 +21,7 @@ import { Button } from "./ui/Button";
 import { Dialog } from "./ui/Dialog";
 import { Menu, MenuItem } from "./ui/Menu";
 import { MoodChip } from "./ui/misc";
+import { VerifiedBadge } from "./VerifiedBadge";
 
 const LONG_POST = 600;
 
@@ -98,8 +99,9 @@ export function PostCard({ post, expandComments = false }: { post: Post; expandC
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 leading-tight">
               {post.author ? (
-                <Link to={`/u/${post.author.username}`} className="truncate font-semibold hover:underline">
-                  {post.author.displayName}
+                <Link to={`/u/${post.author.username}`} className="inline-flex min-w-0 items-center gap-1 font-semibold hover:underline">
+                  <span className="truncate">{post.author.displayName}</span>
+                  <VerifiedBadge user={post.author} size="xs" />
                 </Link>
               ) : (
                 <span className="font-semibold">A quiet soul</span>

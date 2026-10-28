@@ -5,6 +5,7 @@ import { Link, useSearchParams } from "react-router";
 import { PageHeader } from "../components/AppShell";
 import { PostCard } from "../components/PostCard";
 import { KindredSpirits, Resonating } from "../components/Rail";
+import { VerifiedBadge } from "../components/VerifiedBadge";
 import { Avatar } from "../components/ui/Avatar";
 import { EmptyState, SectionTitle } from "../components/ui/misc";
 import { PageSpinner } from "../components/ui/Spinner";
@@ -63,8 +64,9 @@ export function Explore() {
                         <Avatar user={person} showBattery />
                       </Link>
                       <div className="min-w-0 flex-1">
-                        <Link to={`/u/${person.username}`} className="font-semibold hover:underline">
+                        <Link to={`/u/${person.username}`} className="inline-flex items-center gap-1 font-semibold hover:underline">
                           {person.displayName}
+                          <VerifiedBadge user={person} size="xs" />
                         </Link>
                         <p className="truncate text-sm text-muted">{person.bio || `@${person.username}`}</p>
                       </div>

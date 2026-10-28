@@ -1,7 +1,7 @@
 import { type InfiniteData, type QueryClient, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { api } from "./api";
 import { useAuth } from "./auth";
-import type { DailyPrompt, Mood, Page, PersonSummary, Post, ProfileResponse } from "./types";
+import type { DailyPrompt, Mood, Page, PersonSummary, Post, ProfileResponse, RelationshipState, VerificationState } from "./types";
 
 // Every list of posts lives under the "posts" key so a single post can be
 // updated everywhere it appears.
@@ -82,6 +82,24 @@ export function useStats() {
 
 export function useProfile(username: string) {
   return useQuery({ queryKey: keys.profile(username), queryFn: () => api<ProfileResponse>(`/users/${username}`) });
+}
+
+export function useRelationship() {
+  const { me } = useAuth();
+  return useQuery({
+    queryKey: ["relationship", "me"],
+    queryFn: () => api<RelationshipState>("/me/relationship"),
+    enabled: !!me,
+  });
+}
+
+export function useVerification() {
+  const { me } = useAuth();
+  return useQuery({
+    queryKey: ["verification", "me"],
+    queryFn: () => api<VerificationState>("/me/verification"),
+    enabled: !!me,
+  });
 }
 
 export function useSuggested() {

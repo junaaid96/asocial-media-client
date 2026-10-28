@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { addDays, format, startOfDay, subDays } from "date-fns";
-import { Bookmark, CalendarDays, Feather, Flag, GraduationCap, MapPin, MessageCircle, MoreHorizontal, Settings, ShieldAlert } from "lucide-react";
+import { Bookmark, CalendarDays, Feather, Flag, GraduationCap, Heart, MapPin, MessageCircle, MoreHorizontal, Settings, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { useShell } from "../components/AppShell";
 import { FeedList, defaultEmpty } from "../components/FeedList";
 import { FollowButton } from "../components/FollowButton";
 import { ReportDialog } from "../components/ReportDialog";
+import { VerifiedBadge } from "../components/VerifiedBadge";
 import { Menu, MenuItem } from "../components/ui/Menu";
 import { Avatar } from "../components/ui/Avatar";
 import { Button } from "../components/ui/Button";
@@ -17,8 +18,8 @@ import { api, errorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { timeAgo } from "../lib/format";
 import { usePresence } from "../lib/realtime";
-import { MOODS } from "../lib/meta";
-import { useProfile, useUserPosts } from "../lib/queries";
+import { MOODS, relationshipLabel } from "../lib/meta";
+import { useProfile, useRelationship, useUserPosts } from "../lib/queries";
 import type { Mood, PersonSummary } from "../lib/types";
 
 function hue(seed: string) {
@@ -35,6 +36,7 @@ export function Profile() {
   const posts = useUserPosts(username);
   const [connections, setConnections] = useState<"followers" | "following" | null>(null);
   const [reporting, setReporting] = useState(false);
+  const myRelationship = useRelationship();
   const presence = usePresence(profile.data?.user);
 
   if (profile.isPending) return <PageSpinner />;
@@ -48,7 +50,7 @@ export function Profile() {
     );
   }
 
-  const { user, isMe, isFollowing, followsMe, stats, canMessage, suspended } = profile.data;
+  const { user, isMe, isFollowing, followsMe, stats, canMessage, suspended, relationship } = profile.data;
   const h = hue(user.username);
   const canLetter = !isMe && user.lettersFrom !== "nobody" && (user.lettersFrom === "everyone" || followsMe);
 
@@ -110,6 +112,8 @@ export function Profile() {
           <div className="mt-3">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-serif text-2xl font-semibold tracking-tight">{user.displayName}</h1>
+              <VerifiedBadge user={user} size="md" />
+              {user.verified && user.verifiedLabel ? <span className="text-sm text-muted">{user.verifiedLabel}</span> : null}
               {followsMe && !isMe ? <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted">Follows you</span> : null}
             </div>
             <p className="flex flex-wrap items-center gap-x-2 text-muted">
@@ -142,6 +146,21 @@ export function Profile() {
                   <MapPin className="size-4" /> {user.location}
                 </li>
               ) : null}
+              {relationship ? (
+                <li className="inline-flex items-center gap-1.5">
+                  <Heart className="size-4 text-clay" aria-hidden />
+                  {relationship.partner ? (
+                    <span>
+                      {relationshipLabel(relationship.label)} with{" "}
+                      <Link to={`/u/${relationship.partner.username}`} className="font-medium text-ink hover:underline">
+                        @{relationship.partner.username}
+                      </Link>
+                    </span>
+                  ) : (
+                    relationshipLabel(relationship.label)
+                  )}
+                </li>
+              ) : null}
               <li className="inline-flex items-center gap-1.5">
                 <CalendarDays className="size-4" /> Joined {format(new Date(user.joinedAt), "MMMM yyyy")}
               </li>
@@ -162,6 +181,27 @@ export function Profile() {
               ) : null}
             </div>
             {isMe ? <p className="mt-2 text-xs text-muted">Only you can see your follower counts.</p> : null}
+            {isMe && (myRelationship.data?.incoming?.length ?? 0) > 0 ? (
+              <Link
+                to="/settings#relationship"
+                className="mt-3 flex items-center gap-2 rounded-xl bg-accent-soft/60 px-3 py-2 text-sm text-ink-soft transition-colors hover:bg-accent-soft"
+              >
+                <Heart className="size-4 shrink-0 text-clay" aria-hidden />
+                <span>
+                  <span className="font-medium">@{myRelationship.data!.incoming[0]!.other.username}</span> wants to share a relationship status
+                  with you. Review it in settings.
+                </span>
+              </Link>
+            ) : null}
+            {isMe && myRelationship.data?.outgoing && !myRelationship.data.confirmed ? (
+              <p className="mt-3 flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-sm text-muted">
+                <Heart className="size-4 shrink-0" aria-hidden />
+                <span>
+                  Waiting on <span className="font-medium">@{myRelationship.data.outgoing.other.username}</span> to confirm your{" "}
+                  {relationshipLabel(myRelationship.data.outgoing.label).toLowerCase()} status. Nothing shows until you both agree.
+                </span>
+              </p>
+            ) : null}
           </div>
         </div>
       </section>

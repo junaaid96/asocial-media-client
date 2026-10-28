@@ -7,6 +7,7 @@ import { Link, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { PageHeader } from "../components/AppShell";
 import { REPORT_REASONS } from "../components/ReportDialog";
+import { VerifiedBadge } from "../components/VerifiedBadge";
 import { VISIBILITY } from "../components/VisibilityPicker";
 import { Avatar } from "../components/ui/Avatar";
 import { Button } from "../components/ui/Button";
@@ -17,10 +18,11 @@ import { api, errorMessage } from "../lib/api";
 import { fullDate, timeAgo } from "../lib/format";
 import type { PublicUser, ReportReason, ReportTarget, Visibility } from "../lib/types";
 
-type Tab = "overview" | "reports" | "users" | "posts" | "log";
+type Tab = "overview" | "reports" | "verification" | "users" | "posts" | "log";
 const TABS: { key: Tab; label: string }[] = [
   { key: "overview", label: "Overview" },
   { key: "reports", label: "Reports" },
+  { key: "verification", label: "Verification" },
   { key: "users", label: "People" },
   { key: "posts", label: "Posts" },
   { key: "log", label: "Audit log" },
@@ -40,6 +42,8 @@ interface Stats {
     | "messages_7d"
     | "open_reports"
     | "reports"
+    | "verified"
+    | "pending_verifications"
     | "active_today"
     | "active_7d",
     number
@@ -60,6 +64,8 @@ const EMPTY_TOTALS: Stats["totals"] = {
   messages_7d: 0,
   open_reports: 0,
   reports: 0,
+  verified: 0,
+  pending_verifications: 0,
   active_today: 0,
   active_7d: 0,
 };
@@ -146,12 +152,18 @@ export function Admin() {
             {t.key === "reports" && stats.data?.totals?.open_reports ? (
               <span className="ml-1.5 rounded-full bg-clay px-1.5 text-[11px] font-semibold text-white">{stats.data.totals.open_reports}</span>
             ) : null}
+            {t.key === "verification" && stats.data?.totals?.pending_verifications ? (
+              <span className="ml-1.5 rounded-full bg-accent px-1.5 text-[11px] font-semibold text-white">
+                {stats.data.totals.pending_verifications}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>
       <div role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${tab}`}>
         {tab === "overview" ? <Overview stats={stats.data} failed={stats.isError} /> : null}
         {tab === "reports" ? <Reports /> : null}
+        {tab === "verification" ? <VerificationsPanel /> : null}
         {tab === "users" ? <UsersPanel /> : null}
         {tab === "posts" ? <PostsPanel /> : null}
         {tab === "log" ? <ActionLog /> : null}
@@ -183,6 +195,7 @@ function Overview({ stats, failed }: { stats: Stats | undefined; failed?: boolea
     { label: "Open reports", value: t.open_reports, hint: `${t.reports} all time`, icon: <Flag className="size-4" />, tab: "reports" },
     { label: "Hidden posts", value: t.hidden_posts, icon: <EyeOff className="size-4" />, tab: "posts" },
     { label: "Suspended", value: t.suspended, icon: <UserX className="size-4" />, tab: "users" },
+    { label: "Verified", value: t.verified, hint: `${t.pending_verifications} awaiting review`, icon: <ShieldCheck className="size-4" />, tab: "verification" },
     { label: "Moderators", value: t.admins, icon: <ShieldCheck className="size-4" /> },
   ];
   const max = Math.max(1, ...series.map((d) => d[metric] ?? 0));
@@ -394,6 +407,122 @@ function ReportCard({ report }: { report: AdminReport }) {
   );
 }
 
+// --- Verification --------------------------------------------------------------
+
+interface AdminVerification {
+  id: string;
+  note: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+  resolvedAt: string | null;
+  user: PublicUser & { id: string };
+  posts: number;
+  joinedAt: string;
+}
+
+const VERIFICATION_STATUSES = ["pending", "approved", "rejected", "all"] as const;
+
+function VerificationsPanel() {
+  const [status, setStatus] = useState<(typeof VERIFICATION_STATUSES)[number]>("pending");
+  const list = useQuery({
+    queryKey: ["admin", "verifications", status],
+    queryFn: () => api<{ items: AdminVerification[] }>("/admin/verifications", { query: { status } }).then((r) => r.items),
+  });
+  return (
+    <div className="space-y-4">
+      <FilterPills value={status} options={VERIFICATION_STATUSES} onChange={setStatus} label="Verification request status" />
+      {list.isPending ? (
+        <PageSpinner />
+      ) : list.data?.length ? (
+        <ul className="space-y-3">
+          {list.data.map((item) => (
+            <VerificationCard key={item.id} item={item} />
+          ))}
+        </ul>
+      ) : (
+        <div className="card">
+          <EmptyState icon="✅" title={status === "pending" ? "No pending requests" : "Nothing here"}>
+            {status === "pending" ? "Nobody is waiting for a badge right now." : "No requests with this status yet."}
+          </EmptyState>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VerificationCard({ item }: { item: AdminVerification }) {
+  const queryClient = useQueryClient();
+  const [label, setLabel] = useState("");
+  const decide = useMutation({
+    mutationFn: (action: "approve" | "reject") =>
+      api(`/admin/verifications/${item.id}/${action}`, { method: "POST", body: action === "approve" ? { label } : {} }),
+    onSuccess: (_d, action) => {
+      toast(action === "approve" ? `@${item.user.username} is verified` : "Request rejected");
+      void queryClient.invalidateQueries({ queryKey: ["admin"] });
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+  const open = item.status === "pending";
+
+  return (
+    <li className="card p-4 sm:p-5">
+      <div className="flex flex-wrap items-center gap-3">
+        <Link to={`/u/${item.user.username}`}>
+          <Avatar user={item.user} />
+        </Link>
+        <div className="min-w-0 flex-1">
+          <p className="flex flex-wrap items-center gap-1.5">
+            <Link to={`/u/${item.user.username}`} className="font-semibold hover:underline">
+              {item.user.displayName}
+            </Link>
+            <VerifiedBadge user={item.user} size="xs" />
+            <span className="text-sm text-muted">@{item.user.username}</span>
+          </p>
+          <p className="text-xs text-muted">
+            joined {timeAgo(item.joinedAt)} · {item.posts} posts · requested {timeAgo(item.createdAt)}
+          </p>
+        </div>
+        {!open ? (
+          <Badge tone={item.status === "approved" ? "accent" : "muted"}>
+            {item.status}
+            {item.resolvedAt ? ` · ${timeAgo(item.resolvedAt)}` : ""}
+          </Badge>
+        ) : null}
+      </div>
+      {item.note ? (
+        <blockquote className="mt-3 rounded-xl border-l-4 border-line bg-surface-2/70 px-3 py-2 text-sm whitespace-pre-wrap text-ink-soft">
+          {item.note}
+        </blockquote>
+      ) : (
+        <p className="mt-3 text-sm text-muted italic">No note — check their profile and posts before deciding.</p>
+      )}
+      {open ? (
+        <div className="mt-4 flex flex-wrap items-end gap-2 border-t border-line pt-4">
+          <div className="min-w-44 flex-1">
+            <label className="sr-only" htmlFor={`label-${item.id}`}>
+              Badge label (optional)
+            </label>
+            <input
+              id={`label-${item.id}`}
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              maxLength={40}
+              className="field py-2 text-sm"
+              placeholder="Badge label, e.g. Artist (optional)"
+            />
+          </div>
+          <Button size="sm" loading={decide.isPending && decide.variables === "approve"} onClick={() => decide.mutate("approve")}>
+            Approve
+          </Button>
+          <Button size="sm" variant="secondary" loading={decide.isPending && decide.variables === "reject"} onClick={() => decide.mutate("reject")}>
+            Reject
+          </Button>
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
 // --- People --------------------------------------------------------------------
 
 function useDebounced(value: string, ms = 300) {
@@ -405,7 +534,7 @@ function useDebounced(value: string, ms = 300) {
   return debounced;
 }
 
-const USER_STATUSES = ["all", "suspended", "admins"] as const;
+const USER_STATUSES = ["all", "suspended", "admins", "verified"] as const;
 
 function UsersPanel() {
   const queryClient = useQueryClient();
@@ -413,6 +542,7 @@ function UsersPanel() {
   const q = useDebounced(text.trim());
   const [status, setStatus] = useState<(typeof USER_STATUSES)[number]>("all");
   const [suspending, setSuspending] = useState<AdminUser | null>(null);
+  const [verifying, setVerifying] = useState<AdminUser | null>(null);
   const users = useInfiniteQuery({
     queryKey: ["admin", "users", q, status],
     queryFn: ({ pageParam }) => api<{ items: AdminUser[]; nextCursor: string | null }>("/admin/users", { query: { q, status, cursor: pageParam ?? undefined } }),
@@ -423,6 +553,14 @@ function UsersPanel() {
     mutationFn: (user: AdminUser) => api(`/admin/users/${user.id}/unsuspend`, { method: "POST" }),
     onSuccess: () => {
       toast("Account restored");
+      void queryClient.invalidateQueries({ queryKey: ["admin"] });
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+  const unverify = useMutation({
+    mutationFn: (user: AdminUser) => api(`/admin/users/${user.id}/unverify`, { method: "POST" }),
+    onSuccess: (_d, user) => {
+      toast(`@${user.username} is no longer verified`);
       void queryClient.invalidateQueries({ queryKey: ["admin"] });
     },
     onError: (error) => toast.error(errorMessage(error)),
@@ -447,8 +585,10 @@ function UsersPanel() {
                   <Link to={`/u/${user.username}`} className="font-semibold hover:underline">
                     {user.displayName}
                   </Link>
+                  <VerifiedBadge user={user} size="xs" />
                   <span className="text-sm text-muted">@{user.username}</span>
                   {user.role === "admin" ? <Badge tone="accent">moderator</Badge> : null}
+                  {user.verified ? <Badge tone="accent">verified{user.verifiedLabel ? ` · ${user.verifiedLabel}` : ""}</Badge> : null}
                   {user.suspendedAt ? <Badge tone="clay">suspended</Badge> : null}
                 </p>
                 <p className="truncate text-xs text-muted">
@@ -463,9 +603,25 @@ function UsersPanel() {
                     Restore
                   </Button>
                 ) : (
-                  <Button size="sm" variant="danger" onClick={() => setSuspending(user)}>
-                    Suspend
-                  </Button>
+                  <span className="flex flex-wrap gap-2">
+                    {user.verified ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        loading={unverify.isPending && unverify.variables?.id === user.id}
+                        onClick={() => window.confirm(`Remove the badge from @${user.username}? They'll be told.`) && unverify.mutate(user)}
+                      >
+                        Unverify
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="secondary" onClick={() => setVerifying(user)}>
+                        Verify
+                      </Button>
+                    )}
+                    <Button size="sm" variant="danger" onClick={() => setSuspending(user)}>
+                      Suspend
+                    </Button>
+                  </span>
                 )
               ) : null}
             </li>
@@ -489,6 +645,15 @@ function UsersPanel() {
           void queryClient.invalidateQueries({ queryKey: ["admin"] });
         }}
         onClose={() => setSuspending(null)}
+      />
+      <VerifyDialog
+        target={verifying}
+        onDone={() => {
+          toast(verifying ? `@${verifying.username} is verified` : "Verified");
+          setVerifying(null);
+          void queryClient.invalidateQueries({ queryKey: ["admin"] });
+        }}
+        onClose={() => setVerifying(null)}
       />
     </div>
   );
@@ -591,7 +756,7 @@ function PostsPanel() {
 
 interface ModerationAction {
   id: string;
-  action: "suspend_user" | "unsuspend_user" | "hide_post" | "unhide_post" | "resolve_report" | "dismiss_report";
+  action: "suspend_user" | "unsuspend_user" | "hide_post" | "unhide_post" | "resolve_report" | "dismiss_report" | "verify_user" | "unverify_user";
   note: string | null;
   createdAt: string;
   postId: string | null;
@@ -607,6 +772,8 @@ const ACTION_LABEL: Record<ModerationAction["action"], string> = {
   unhide_post: "restored a post by",
   resolve_report: "resolved a report about",
   dismiss_report: "dismissed a report about",
+  verify_user: "verified",
+  unverify_user: "removed verification from",
 };
 
 /** Every moderator decision, newest first, so choices can be reviewed later. */
@@ -625,7 +792,7 @@ function ActionLog() {
     return (
       <div className="card">
         <EmptyState icon="📜" title="No decisions yet">
-          Hiding, restoring, suspending and closing reports will be recorded here.
+          Hiding, restoring, suspending, verifying and closing reports will be recorded here.
         </EmptyState>
       </div>
     );
@@ -714,6 +881,46 @@ function LoadMore({ query }: { query: { hasNextPage: boolean; isFetchingNextPage
         {query.isFetchingNextPage ? <Spinner className="size-4" /> : null} Load more
       </Button>
     </div>
+  );
+}
+
+/** Verify someone directly, without waiting for them to ask. */
+function VerifyDialog({ target, onDone, onClose }: { target: AdminUser | null; onDone: () => void; onClose: () => void }) {
+  const [label, setLabel] = useState("");
+  const submit = useMutation({
+    mutationFn: () => api(`/admin/users/${target!.id}/verify`, { method: "POST", body: { label } }),
+    onSuccess: () => {
+      setLabel("");
+      onDone();
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+  return (
+    <Dialog open={!!target} onClose={onClose} title={target ? `Verify @${target.username}` : "Verify"}>
+      <form
+        className="space-y-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit.mutate();
+        }}
+      >
+        <p className="text-sm text-muted">A badge appears next to their name everywhere. They'll be notified. Any open request from them is approved too.</p>
+        <div>
+          <label className="label" htmlFor="verify-label">
+            Badge label <span className="font-normal text-muted">(optional, e.g. Artist)</span>
+          </label>
+          <input id="verify-label" value={label} onChange={(e) => setLabel(e.target.value)} maxLength={40} className="field" placeholder="Artist" />
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" loading={submit.isPending}>
+            Verify
+          </Button>
+        </div>
+      </form>
+    </Dialog>
   );
 }
 

@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
-import { AtSign, Mail, MessageCircle, Moon, ShieldCheck, UserPlus } from "lucide-react";
+import { AtSign, Heart, Mail, MessageCircle, Moon, ShieldCheck, UserPlus } from "lucide-react";
 import { useEffect } from "react";
 import { Link } from "react-router";
 import { PageHeader } from "../components/AppShell";
+import { VerifiedBadge } from "../components/VerifiedBadge";
 import { Avatar } from "../components/ui/Avatar";
 import { EmptyState } from "../components/ui/misc";
 import { PageSpinner } from "../components/ui/Spinner";
@@ -53,7 +54,15 @@ export function Notifications() {
             ) : (
             <li key={n.id}>
               <Link
-                to={n.type === "letter" ? `/letters/${n.letterId}` : n.type === "follow" && n.actor ? `/u/${n.actor.username}` : `/post/${n.postId}`}
+                to={
+                  n.type === "letter"
+                    ? `/letters/${n.letterId}`
+                    : n.type === "follow" && n.actor
+                      ? `/u/${n.actor.username}`
+                      : n.type === "relationship"
+                        ? "/settings#relationship"
+                        : `/post/${n.postId}`
+                }
                 className={clsx("flex gap-3.5 px-4 py-4 transition-colors hover:bg-surface-2 sm:px-5", !n.read && "bg-accent-soft/40")}
               >
                 <div className="relative">
@@ -64,7 +73,9 @@ export function Notifications() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[15px] leading-snug">
-                    <span className="font-semibold">{n.actor?.displayName ?? "Someone"}</span> {describe(n)}
+                    <span className="font-semibold">{n.actor?.displayName ?? "Someone"}</span>{" "}
+                    <VerifiedBadge user={n.actor} size="xs" className="mr-1 align-[-2px]" />
+                    {describe(n)}
                   </p>
                   {n.commentExcerpt || n.postExcerpt ? (
                     <p className="mt-1 line-clamp-2 text-sm text-muted">“{n.commentExcerpt || n.postExcerpt}”</p>
@@ -82,7 +93,7 @@ export function Notifications() {
   );
 }
 
-const isSystem = (n: Notification) => n.type === "report_update" || n.type === "moderation";
+const isSystem = (n: Notification) => n.type === "report_update" || n.type === "moderation" || n.type === "verification";
 
 /** Notices from the moderators: report outcomes and decisions about your posts. */
 function SystemNotice({ n }: { n: Notification }) {
@@ -94,7 +105,7 @@ function SystemNotice({ n }: { n: Notification }) {
       <div className="min-w-0 flex-1">
         <p className="text-[15px] leading-snug">
           <span className="font-semibold">aSocial moderators</span>{" "}
-          {n.type === "report_update" ? "reviewed your report" : "about your post"}
+          {n.type === "report_update" ? "reviewed your report" : n.type === "verification" ? "about your verification" : "about your post"}
         </p>
         {n.body ? <p className="mt-1 text-sm text-ink-soft">{n.body}</p> : null}
         {n.postExcerpt ? <p className="mt-1 line-clamp-2 text-sm text-muted">“{n.postExcerpt}”</p> : null}
@@ -127,6 +138,8 @@ function describe(n: Notification) {
       return n.commentId ? "mentioned you in a reply" : "mentioned you in a post";
     case "comment_reaction":
       return n.reaction && REACTIONS[n.reaction] ? `${REACTIONS[n.reaction].verb} your reply` : "resonated with your reply";
+    case "relationship":
+      return n.body ?? "about your relationship status";
     default:
       return "";
   }
@@ -137,5 +150,6 @@ function NotificationIcon({ n }: { n: Notification }) {
   if (n.type === "comment") return <MessageCircle className="size-3.5 text-accent" />;
   if (n.type === "follow") return <UserPlus className="size-3.5 text-accent" />;
   if (n.type === "mention") return <AtSign className="size-3.5 text-accent" />;
+  if (n.type === "relationship") return <Heart className="size-3.5 text-clay" />;
   return <Mail className="size-3.5 text-clay" />;
 }
